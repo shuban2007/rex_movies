@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
+import { ScrollToTop } from './components/ScrollToTop';
 import { HomePage } from './pages/HomePage';
 import { WatchPage } from './pages/WatchPage';
 import { WatchlistPage } from './pages/WatchlistPage';
@@ -11,6 +12,7 @@ import './App.css';
 export default function App() {
   return (
     <div className="app">
+      <ScrollToTop />
       <Header />
       
       <main className="main-content">
