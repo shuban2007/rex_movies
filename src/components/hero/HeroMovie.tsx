@@ -34,9 +34,9 @@ export function HeroMovie({ movie }: HeroMovieProps) {
     }
 
     if (inWatchlist) {
-      await watchlistService.removeMovie(movie.id, user.id);
+      await watchlistService.removeMedia(movie.id, user.id);
     } else {
-      await watchlistService.addMovie(movie, user.id);
+      await watchlistService.addMedia(movie, 'movie', user.id);
     }
   };
 
@@ -69,7 +69,7 @@ export function HeroMovie({ movie }: HeroMovieProps) {
         )}
         
         <div className="hero-actions">
-          <Link to={`/watch/${movie.id}`} className="hero-btn primary">
+          <Link to={`/watch/movie/${movie.id}`} className="hero-btn primary">
             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
               <path d="M8 5v14l11-7z" />
             </svg>

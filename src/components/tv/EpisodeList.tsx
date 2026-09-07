@@ -9,7 +9,7 @@ interface EpisodeListProps {
   activeSeason: number;
   activeEpisode: number;
   onSeasonChange: (seasonNumber: number) => void;
-  onEpisodeSelect: (episodeNumber: number) => void;
+  onEpisodeSelect: (episodeNumber: number, title?: string) => void;
 }
 
 export function EpisodeList({
@@ -86,7 +86,7 @@ export function EpisodeList({
               <button
                 key={episode.id}
                 className={`episode-page-btn ${episode.episodeNumber === activeEpisode ? 'active' : ''}`}
-                onClick={() => onEpisodeSelect(episode.episodeNumber)}
+                onClick={() => onEpisodeSelect(episode.episodeNumber, episode.title)}
                 title={episode.title}
               >
                 <span className="ep-number">{episode.episodeNumber}.</span>

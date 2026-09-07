@@ -71,9 +71,9 @@ export function HistoryPage() {
           <div className="collection-empty">
             <div className="empty-icon">◷</div>
             <h2>No watch history yet.</h2>
-            <p>Movies you watch will appear here.</p>
+            <p>Content you watch will appear here.</p>
             <Link to="/" className="discover-btn">
-              Discover Movies
+              Discover Content
             </Link>
           </div>
         ) : (
@@ -83,12 +83,17 @@ export function HistoryPage() {
                 key={movie.id} 
                 movie={{
                   id: movie.tmdb_id,
-                  title: movie.title,
-                  year: movie.year,
+                  mediaType: movie.media_type || 'movie',
+                  title: movie.media_type === 'tv' 
+                    ? `${movie.title}` 
+                    : movie.title,
+                  year: movie.media_type === 'tv' && movie.season_number != null
+                    ? `S${movie.season_number} E${movie.episode_number}${movie.episode_title ? ` - ${movie.episode_title}` : ''}`
+                    : movie.year,
                   posterPath: movie.poster_path,
                   backdropPath: null,
                   overview: ''
-                }} 
+                } as any} 
               />
             ))}
           </div>

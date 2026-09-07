@@ -68,12 +68,13 @@ export function WatchlistPage() {
                 key={movie.id} 
                 movie={{
                   id: movie.tmdb_id,
+                  mediaType: movie.media_type || 'movie',
                   title: movie.title,
                   year: movie.year,
                   posterPath: movie.poster_path,
                   backdropPath: movie.backdrop_path,
                   overview: '' // We don't store overview in DB currently
-                }} 
+                } as any} 
               />
             ))}
           </div>

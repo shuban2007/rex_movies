@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { VideoPlayer } from '../components/player/VideoPlayer';
 import { getMovieDetails, getTvDetails, type MovieSearchResult, type TvSeriesDetails } from '../services/tmdb';
 import { RecommendationSection } from '../components/recommendations/RecommendationSection';
@@ -15,27 +15,47 @@ export function WatchPage() {
   const [inWatchlist, setInWatchlist] = useState(false);
   const [activeSeason, setActiveSeason] = useState<number>(1);
   const [activeEpisode, setActiveEpisode] = useState<number>(1);
+  const [activeEpisodeTitle, setActiveEpisodeTitle] = useState<string>('');
   
   const { user } = useAuth();
+  
+  // Track synthetic progress (watch session time)
+  const watchTimeSeconds = useRef<number>(0);
+  const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const numericId = tmdbId ? parseInt(tmdbId, 10) : null;
   const isValidId = numericId !== null && !isNaN(numericId) && numericId > 0;
+  const isTv = mediaType === 'tv';
 
   useEffect(() => {
     let mounted = true;
     
-    async function loadMediaAndRecord() {
+    async function loadMediaAndHistory() {
       if (!isValidId || !numericId) return;
       
       try {
         let data: MovieSearchResult | TvSeriesDetails | null = null;
+        let lastHistory = null;
         
-        if (mediaType === 'tv') {
+        // Fetch history first to determine restore points
+        const historyData = await historyService.getHistory(user?.id);
+        
+        if (isTv) {
           data = await getTvDetails(numericId);
+          
           if (data && 'seasons' in data && data.seasons.length > 0) {
-            const firstValidSeason = data.seasons.find(s => s.seasonNumber > 0) || data.seasons[0];
-            setActiveSeason(firstValidSeason.seasonNumber);
-            setActiveEpisode(1);
+            // Find the most recent history for THIS tv show
+            lastHistory = historyData.find(h => h.tmdb_id === numericId && h.media_type === 'tv');
+            
+            if (lastHistory && lastHistory.season_number != null && lastHistory.episode_number != null) {
+              setActiveSeason(lastHistory.season_number);
+              setActiveEpisode(lastHistory.episode_number);
+              if (lastHistory.episode_title) setActiveEpisodeTitle(lastHistory.episode_title);
+            } else {
+              const firstValidSeason = data.seasons.find(s => s.seasonNumber > 0) || data.seasons[0];
+              setActiveSeason(firstValidSeason.seasonNumber);
+              setActiveEpisode(1);
+            }
           }
         } else {
           data = await getMovieDetails(numericId);
@@ -43,23 +63,18 @@ export function WatchPage() {
 
         if (mounted && data) {
           setMedia(data);
-          
-          // Asynchronously record history without blocking player
-          historyService.recordMovie(data, user?.id);
-          
-          // Set initial watchlist state synchronously from cache
           setInWatchlist(watchlistService.isInWatchlistSync(data.id));
         }
       } catch (err) {
-        console.error('Failed to load media for history recording:', err);
+        console.error('Failed to load media or history:', err);
       }
     }
 
-    loadMediaAndRecord();
+    loadMediaAndHistory();
     
     const handleWatchlistUpdate = () => {
-      if (media && mounted) {
-        setInWatchlist(watchlistService.isInWatchlistSync(media.id));
+      if (numericId && mounted) {
+        setInWatchlist(watchlistService.isInWatchlistSync(numericId));
       }
     };
     
@@ -68,16 +83,58 @@ export function WatchPage() {
       mounted = false;
       window.removeEventListener('watchlist-updated', handleWatchlistUpdate);
     };
-  }, [isValidId, numericId, mediaType, user?.id, media?.id]);
+  }, [isValidId, numericId, mediaType, isTv, user?.id]);
+
+  // Separate effect to handle continuous progress recording
+  useEffect(() => {
+    if (!media) return;
+
+    watchTimeSeconds.current = 0; // Reset timer when media or episode changes
+
+    const saveProgress = () => {
+      historyService.recordProgress(
+        media, 
+        isTv ? 'tv' : 'movie', 
+        user?.id, 
+        isTv ? activeSeason : undefined, 
+        isTv ? activeEpisode : undefined, 
+        activeEpisodeTitle || undefined,
+        watchTimeSeconds.current
+      );
+    };
+
+    // Save immediately upon mounting the episode
+    saveProgress();
+
+    // Start interval to track time spent watching (approximate progress)
+    progressInterval.current = setInterval(() => {
+      watchTimeSeconds.current += 15;
+      saveProgress();
+    }, 15000); // Record every 15 seconds
+
+    return () => {
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+      }
+      // Save one last time when unmounting or changing episode
+      saveProgress();
+    };
+  }, [media, isTv, activeSeason, activeEpisode, activeEpisodeTitle, user?.id]);
 
   const toggleWatchlist = async () => {
     if (!media) return;
 
     if (inWatchlist) {
-      await watchlistService.removeMovie(media.id, user?.id);
+      await watchlistService.removeMedia(media.id, user?.id);
     } else {
-      await watchlistService.addMovie(media, user?.id);
+      await watchlistService.addMedia(media, isTv ? 'tv' : 'movie', user?.id);
     }
+  };
+
+  // Helper to extract episode title from our custom list if needed
+  const handleEpisodeSelect = (episode: number, title?: string) => {
+    setActiveEpisode(episode);
+    if (title) setActiveEpisodeTitle(title);
   };
 
   if (!isValidId) {
@@ -89,8 +146,6 @@ export function WatchPage() {
       </div>
     );
   }
-
-  const isTv = mediaType === 'tv';
 
   return (
     <div className="watch-page">
@@ -171,8 +226,8 @@ export function WatchPage() {
             seasons={(media as TvSeriesDetails).seasons}
             activeSeason={activeSeason}
             activeEpisode={activeEpisode}
-            onSeasonChange={(s) => { setActiveSeason(s); setActiveEpisode(1); }}
-            onEpisodeSelect={(e) => setActiveEpisode(e)}
+            onSeasonChange={(s) => { setActiveSeason(s); setActiveEpisode(1); setActiveEpisodeTitle(''); }}
+            onEpisodeSelect={(e, title) => handleEpisodeSelect(e, title)}
           />
         )}
 

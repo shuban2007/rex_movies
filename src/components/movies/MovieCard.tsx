@@ -1,13 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import type { MovieSearchResult } from '../../services/tmdb';
+import type { MovieSearchResult, MediaSearchResult, TvSeriesDetails } from '../../services/tmdb';
 import { getImageUrl } from '../../utils/imageUrl';
 import { watchlistService } from '../../services/watchlist';
 import { useAuth } from '../../hooks/useAuth';
 import './MovieCard.css';
 
 interface MovieCardProps {
-  movie: MovieSearchResult;
+  movie: MovieSearchResult | MediaSearchResult | TvSeriesDetails;
 }
 
 export function MovieCard({ movie }: MovieCardProps) {
@@ -15,6 +15,9 @@ export function MovieCard({ movie }: MovieCardProps) {
   const { user, signInWithGoogle } = useAuth();
   const [inWatchlist, setInWatchlist] = useState(false);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+
+  // Infer media type safely
+  const mediaType = (movie as MediaSearchResult).mediaType || 'movie';
 
   useEffect(() => {
     // Initial sync check based on cached data
@@ -29,7 +32,7 @@ export function MovieCard({ movie }: MovieCardProps) {
   }, [movie.id, user]);
 
   const handleCardClick = () => {
-    navigate(`/watch/${movie.id}`);
+    navigate(`/watch/${mediaType}/${movie.id}`);
   };
 
   const handleWatchlistClick = async (e: React.MouseEvent) => {
@@ -41,13 +44,14 @@ export function MovieCard({ movie }: MovieCardProps) {
     }
 
     if (inWatchlist) {
-      await watchlistService.removeMovie(movie.id, user.id);
+      await watchlistService.removeMedia(movie.id, user.id);
     } else {
-      await watchlistService.addMovie(movie, user.id);
+      await watchlistService.addMedia(movie, mediaType, user.id);
     }
   };
 
-  const posterUrl = getImageUrl(movie.posterPath, 'w500');
+  const posterPath = movie.posterPath || (movie as any).backdropPath;
+  const posterUrl = getImageUrl(posterPath, 'w500');
 
   return (
     <div 

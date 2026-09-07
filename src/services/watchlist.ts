@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { WatchlistItem } from '../types/database';
-import type { MovieSearchResult } from './tmdb';
+import type { MediaSearchResult, TvSeriesDetails, MovieSearchResult } from './tmdb';
 
 let watchlistCache: WatchlistItem[] | null = null;
 let currentUserId: string | null = null;
@@ -43,7 +43,13 @@ export const watchlistService = {
       return [];
     }
     
-    watchlistCache = data || [];
+    // Normalize old records missing media_type
+    const normalizedData = (data || []).map(item => ({
+      ...item,
+      media_type: item.media_type || 'movie' // default if missing
+    }));
+
+    watchlistCache = normalizedData;
     currentUserId = userId;
     return watchlistCache;
   },
@@ -53,18 +59,19 @@ export const watchlistService = {
     return !!watchlistCache.find(m => m.tmdb_id === tmdbId);
   },
 
-  async addMovie(movie: MovieSearchResult, userId: string | undefined): Promise<boolean> {
+  async addMedia(media: MediaSearchResult | MovieSearchResult | TvSeriesDetails, mediaType: 'movie' | 'tv', userId: string | undefined): Promise<boolean> {
     if (!userId) {
       const guestList = getGuestWatchlist();
-      if (!guestList.find(m => m.tmdb_id === movie.id)) {
+      if (!guestList.find(m => m.tmdb_id === media.id)) {
         guestList.unshift({
-          id: `guest_${movie.id}`,
+          id: `guest_${media.id}`,
           user_id: 'guest',
-          tmdb_id: movie.id,
-          title: movie.title,
-          year: movie.year,
-          poster_path: movie.posterPath,
-          backdrop_path: movie.backdropPath,
+          tmdb_id: media.id,
+          media_type: mediaType,
+          title: media.title,
+          year: media.year,
+          poster_path: media.posterPath || (media as any).backdropPath,
+          backdrop_path: media.backdropPath || null,
           created_at: new Date().toISOString()
         });
         setGuestWatchlist(guestList);
@@ -78,11 +85,12 @@ export const watchlistService = {
       .from('watchlist')
       .insert({
         user_id: userId,
-        tmdb_id: movie.id,
-        title: movie.title,
-        year: movie.year,
-        poster_path: movie.posterPath,
-        backdrop_path: movie.backdropPath
+        tmdb_id: media.id,
+        media_type: mediaType,
+        title: media.title,
+        year: media.year,
+        poster_path: media.posterPath || (media as any).backdropPath,
+        backdrop_path: media.backdropPath || null
       });
 
     if (error) {
@@ -97,11 +105,12 @@ export const watchlistService = {
       watchlistCache.unshift({
         id: 'optimistic',
         user_id: userId,
-        tmdb_id: movie.id,
-        title: movie.title,
-        year: movie.year,
-        poster_path: movie.posterPath,
-        backdrop_path: movie.backdropPath,
+        tmdb_id: media.id,
+        media_type: mediaType,
+        title: media.title,
+        year: media.year,
+        poster_path: media.posterPath || (media as any).backdropPath,
+        backdrop_path: media.backdropPath || null,
         created_at: new Date().toISOString()
       });
     }
@@ -110,7 +119,7 @@ export const watchlistService = {
     return true;
   },
 
-  async removeMovie(tmdbId: number, userId: string | undefined): Promise<boolean> {
+  async removeMedia(tmdbId: number, userId: string | undefined): Promise<boolean> {
     if (!userId) {
       const guestList = getGuestWatchlist();
       const newList = guestList.filter(m => m.tmdb_id !== tmdbId);
@@ -155,6 +164,7 @@ export const watchlistService = {
       const toInsert = guestList.filter(m => !existingIds.has(m.tmdb_id)).map(m => ({
         user_id: userId,
         tmdb_id: m.tmdb_id,
+        media_type: m.media_type || 'movie',
         title: m.title,
         year: m.year,
         poster_path: m.poster_path,
