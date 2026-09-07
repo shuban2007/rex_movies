@@ -206,21 +206,24 @@
 
 @media (max-width: 768px) {
   .navbar-search-container {
-    max-width: 200px;
+    max-width: none;
+    flex: 1;
+    min-width: 0;
     margin: 0 0.5rem;
+  }
+
+  .navbar-search-input {
+    height: 34px;
+    font-size: 0.8rem;
+  }
+
+  .navbar-search-dropdown {
+    position: fixed;
+    top: 56px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: 60vh;
   }
 }
 
-@media (max-width: 500px) {
-  /* On very small screens, let it wrap or shrink further */
-  .navbar-search-container {
-    max-width: none;
-    order: 3; /* Move to bottom of flex if wrapping */
-    width: 100%;
-    margin: 0.5rem 0 0 0;
-  }
-  
-  .navbar-search-dropdown {
-    width: 100%;
-  }
-}

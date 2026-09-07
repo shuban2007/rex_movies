@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, type FormEvent, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { searchMovies, SearchError, type MovieSearchResult } from '../../services/tmdb';
+import { searchMulti, SearchError, type MediaSearchResult } from '../../services/tmdb';
 import { getImageUrl } from '../../utils/imageUrl';
 import './MovieSearch.css';
 
@@ -8,7 +8,7 @@ export function MovieSearch() {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
-  const [results, setResults] = useState<MovieSearchResult[]>([]);
+  const [results, setResults] = useState<MediaSearchResult[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
@@ -43,10 +43,10 @@ export function MovieSearch() {
     setError('');
 
     try {
-      const movieResults = await searchMovies(trimmed, controller.signal);
+      const searchResults = await searchMulti(trimmed, controller.signal);
 
       if (!controller.signal.aborted) {
-        setResults(movieResults);
+        setResults(searchResults);
         setIsSearching(false);
       }
     } catch (err: any) {
@@ -84,8 +84,8 @@ export function MovieSearch() {
     inputRef.current?.focus();
   }, []);
 
-  const handleResultClick = (movieId: number) => {
-    navigate(`/watch/${movieId}`);
+  const handleResultClick = (id: number, mediaType: 'movie' | 'tv') => {
+    navigate(`/watch/${mediaType}/${id}`);
     setShowDropdown(false);
     setQuery('');
     setResults([]);
@@ -106,7 +106,7 @@ export function MovieSearch() {
             ref={inputRef}
             type="text"
             className="navbar-search-input"
-            placeholder="Search movies..."
+            placeholder="Search movies and TV shows..."
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -145,16 +145,16 @@ export function MovieSearch() {
             <div className="navbar-search-message">Searching...</div>
           ) : results.length > 0 ? (
             <ul className="navbar-search-results-list">
-              {results.slice(0, 8).map(movie => {
-                const poster = getImageUrl(movie.posterPath, 'w92');
+              {results.slice(0, 8).map(result => {
+                const poster = getImageUrl(result.posterPath, 'w92');
                 return (
                   <li 
-                    key={movie.id} 
+                    key={`${result.mediaType}-${result.id}`} 
                     className="navbar-search-result-item"
-                    onClick={() => handleResultClick(movie.id)}
+                    onClick={() => handleResultClick(result.id, result.mediaType)}
                   >
                     {poster ? (
-                      <img src={poster} alt={movie.title} className="navbar-search-result-poster" loading="lazy" />
+                      <img src={poster} alt={result.title} className="navbar-search-result-poster" loading="lazy" />
                     ) : (
                       <div className="navbar-search-result-poster-placeholder">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -163,9 +163,9 @@ export function MovieSearch() {
                       </div>
                     )}
                     <div className="navbar-search-result-info">
-                      <div className="navbar-search-result-title">{movie.title}</div>
+                      <div className="navbar-search-result-title">{result.title}</div>
                       <div className="navbar-search-result-year">
-                        {movie.year || 'Unknown year'}
+                        {result.year || 'Unknown year'} • {result.mediaType === 'tv' ? 'TV Series' : 'Movie'}
                       </div>
                     </div>
                   </li>
@@ -173,7 +173,7 @@ export function MovieSearch() {
               })}
             </ul>
           ) : (
-            <div className="navbar-search-message">No movies found.</div>
+            <div className="navbar-search-message">No results found.</div>
           )}
         </div>
       )}

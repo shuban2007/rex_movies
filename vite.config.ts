@@ -131,6 +131,65 @@ const apiPlugin = () => ({
         return handleTmdbRequest('/search/movie', params);
       }
 
+      if (pathname === '/api/search-multi') {
+        const rawQuery = url.searchParams.get('q');
+        if (!rawQuery || !rawQuery.trim()) {
+          res.statusCode = 400;
+          return res.end(JSON.stringify({
+            error: { code: 'INVALID_QUERY', message: 'Search query is required.' }
+          }));
+        }
+        const query = rawQuery.trim();
+        if (query.length > 200) {
+          res.statusCode = 400;
+          return res.end(JSON.stringify({
+            error: { code: 'QUERY_TOO_LONG', message: 'Search query is too long.' }
+          }));
+        }
+        
+        try {
+          const params = new URLSearchParams({
+            query,
+            include_adult: 'false',
+            language: 'en-US',
+            page: '1'
+          });
+          const tmdbUrl = `https://api.tmdb.org/3/search/multi?${params.toString()}`;
+          
+          const tmdbRes = await fetch(tmdbUrl, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'accept': 'application/json',
+            }
+          });
+          
+          if (!tmdbRes.ok) throw new Error('Failed to fetch multi search');
+          
+          const data = await tmdbRes.json() as any;
+          
+          const results = (data.results || [])
+            .filter((item: any) => item.media_type === 'movie' || item.media_type === 'tv')
+            .slice(0, 20)
+            .map((item: any) => ({
+              id: item.id,
+              mediaType: item.media_type,
+              title: item.media_type === 'movie' ? item.title : item.name,
+              year: item.media_type === 'movie' 
+                ? (item.release_date ? item.release_date.split('-')[0] : null)
+                : (item.first_air_date ? item.first_air_date.split('-')[0] : null),
+              posterPath: item.poster_path || null,
+              backdropPath: item.backdrop_path || null,
+              overview: item.overview || '',
+            }));
+            
+          res.statusCode = 200;
+          return res.end(JSON.stringify({ results }));
+        } catch {
+          res.statusCode = 500;
+          return res.end(JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch search results.' } }));
+        }
+      }
+
       if (pathname === '/api/trending-movies') {
         return handleTmdbRequest('/trending/movie/day', new URLSearchParams({ language: 'en-US' }));
       }
@@ -187,6 +246,87 @@ const apiPlugin = () => ({
           return res.end(JSON.stringify({ error: { code: 'INVALID_ID', message: 'Valid movie ID required.' } }));
         }
         return handleTmdbRequest(`/movie/${id}/recommendations`, new URLSearchParams({ language: 'en-US', page: '1' }));
+      }
+
+      if (pathname.startsWith('/api/tv/') && !pathname.includes('/season/')) {
+        const id = pathname.split('/').pop();
+        if (!id || isNaN(Number(id))) {
+          res.statusCode = 400;
+          return res.end(JSON.stringify({ error: { code: 'INVALID_ID', message: 'Valid TV ID required.' } }));
+        }
+        
+        try {
+          const tmdbUrl = `https://api.tmdb.org/3/tv/${id}?language=en-US`;
+          const tmdbRes = await fetch(tmdbUrl, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'accept': 'application/json',
+            }
+          });
+          
+          if (!tmdbRes.ok) throw new Error('Failed to fetch tv series');
+          
+          const series = await tmdbRes.json() as any;
+          const result = {
+            id: series.id,
+            title: series.name,
+            year: series.first_air_date ? series.first_air_date.split('-')[0] : null,
+            posterPath: series.poster_path || null,
+            backdropPath: series.backdrop_path || null,
+            overview: series.overview || '',
+            seasons: (series.seasons || []).map((s: any) => ({
+              seasonNumber: s.season_number,
+              name: s.name,
+              episodeCount: s.episode_count,
+            })),
+          };
+          
+          res.statusCode = 200;
+          return res.end(JSON.stringify(result));
+        } catch {
+          res.statusCode = 500;
+          return res.end(JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch TV details.' } }));
+        }
+      }
+
+      if (pathname.startsWith('/api/tv/') && pathname.includes('/season/')) {
+        const parts = pathname.split('/');
+        const seasonIndex = parts.indexOf('season');
+        const id = parts[seasonIndex - 1];
+        const seasonNumber = parts[seasonIndex + 1];
+
+        if (!id || isNaN(Number(id)) || !seasonNumber || isNaN(Number(seasonNumber))) {
+          res.statusCode = 400;
+          return res.end(JSON.stringify({ error: { code: 'INVALID_ID', message: 'Valid TV ID and season number required.' } }));
+        }
+
+        try {
+          const tmdbUrl = `https://api.tmdb.org/3/tv/${id}/season/${seasonNumber}?language=en-US`;
+          const tmdbRes = await fetch(tmdbUrl, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'accept': 'application/json',
+            }
+          });
+          
+          if (!tmdbRes.ok) throw new Error('Failed to fetch season details');
+          
+          const season = await tmdbRes.json() as any;
+          const episodes = (season.episodes || []).map((ep: any) => ({
+            id: ep.id,
+            episodeNumber: ep.episode_number,
+            title: ep.name,
+            airDate: ep.air_date || null,
+            overview: ep.overview || '',
+            stillPath: ep.still_path || null,
+          }));
+          
+          res.statusCode = 200;
+          return res.end(JSON.stringify(episodes));
+        } catch {
+          res.statusCode = 500;
+          return res.end(JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch season details.' } }));
+        }
       }
 
       // If we reach here, 404 the API

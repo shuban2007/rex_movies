@@ -9,3 +9,60 @@
   display: flex;
   flex-direction: column;
 }
+
+/* ─── Mobile Bottom Navigation ─────────────────────────────── */
+
+.mobile-bottom-nav {
+  display: none; /* Hidden on desktop */
+}
+
+@media (max-width: 768px) {
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    background: rgba(10, 10, 15, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.4rem 0;
+    padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
+    justify-content: space-around;
+    align-items: center;
+  }
+
+  .mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    text-decoration: none;
+    color: rgba(240, 240, 245, 0.45);
+    font-size: 0.65rem;
+    font-weight: 500;
+    padding: 0.3rem 0.75rem;
+    transition: color 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-nav-item.active {
+    color: #8b7cf6;
+  }
+
+  .mobile-nav-item.active svg {
+    stroke: #8b7cf6;
+  }
+
+  /* Add bottom padding to prevent content being hidden behind nav */
+  .main-content {
+    padding-bottom: 72px;
+  }
+
+  .app-footer {
+    padding-bottom: 80px;
+  }
+}
+

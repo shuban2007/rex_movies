@@ -1,0 +1,197 @@
+/* ══════════════════════════════════════════════════════════════
+   Ad Blocker Notice — Popup & Banner
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─── Backdrop ───────────────────────────────────────────────── */
+.adblocker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 5, 10, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: adFadeIn 0.3s ease;
+}
+
+@keyframes adFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ─── Modal Card ─────────────────────────────────────────────── */
+.adblocker-modal {
+  position: relative;
+  width: 320px;
+  max-width: calc(100vw - 40px);
+  padding: 1.75rem 1.5rem 1.5rem;
+  background: rgba(18, 18, 26, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(139, 124, 246, 0.08);
+  text-align: center;
+  animation: adSlideUp 0.35s ease;
+}
+
+@keyframes adSlideUp {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ─── Close Button ───────────────────────────────────────────── */
+.adblocker-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  border-radius: 50%;
+  color: rgba(240, 240, 245, 0.5);
+  font-size: 1.15rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.adblocker-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+/* ─── Content ────────────────────────────────────────────────── */
+.adblocker-icon {
+  margin: 0 auto 0.75rem;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(139, 124, 246, 0.12);
+  color: #8b7cf6;
+}
+
+.adblocker-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: rgba(240, 240, 245, 0.95);
+}
+
+.adblocker-desc {
+  margin: 0 0 1.25rem;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: rgba(240, 240, 245, 0.55);
+}
+
+/* ─── Browser Buttons ────────────────────────────────────────── */
+.adblocker-browsers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.adblocker-browser-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s, transform 0.1s;
+  cursor: pointer;
+}
+
+.adblocker-browser-btn:active {
+  transform: scale(0.97);
+}
+
+.browser-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.adblocker-browser-btn.brave {
+  background: rgba(251, 84, 43, 0.12);
+  color: #fb542b;
+  border: 1px solid rgba(251, 84, 43, 0.2);
+}
+
+.adblocker-browser-btn.brave:hover {
+  background: rgba(251, 84, 43, 0.2);
+}
+
+.adblocker-browser-btn.opera {
+  background: rgba(255, 30, 30, 0.08);
+  color: #ff4b4b;
+  border: 1px solid rgba(255, 30, 30, 0.15);
+}
+
+.adblocker-browser-btn.opera:hover {
+  background: rgba(255, 30, 30, 0.15);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Persistent Banner (below header)
+   ══════════════════════════════════════════════════════════════ */
+
+.adblocker-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.3rem 1rem;
+  background: rgba(139, 124, 246, 0.06);
+  border-bottom: 1px solid rgba(139, 124, 246, 0.08);
+  color: rgba(240, 240, 245, 0.4);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+.adblocker-banner svg {
+  flex-shrink: 0;
+  color: rgba(139, 124, 246, 0.4);
+}
+
+/* ─── Responsive ─────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .adblocker-modal {
+    width: 290px;
+    padding: 1.5rem 1.25rem 1.25rem;
+  }
+
+  .adblocker-title {
+    font-size: 0.95rem;
+  }
+
+  .adblocker-desc {
+    font-size: 0.75rem;
+  }
+
+  .adblocker-browser-btn {
+    padding: 0.55rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .adblocker-banner {
+    font-size: 0.65rem;
+    padding: 0.25rem 0.75rem;
+  }
+
+  .adblocker-banner svg {
+    width: 12px;
+    height: 12px;
+  }
+}

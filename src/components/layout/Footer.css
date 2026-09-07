@@ -42,3 +42,31 @@
   margin: 0;
   margin-top: 1rem;
 }
+
+/* ── Legal Links ── */
+.footer-legal-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+
+.footer-legal-links a {
+  color: rgba(240, 240, 245, 0.35);
+  text-decoration: none;
+  font-size: 0.72rem;
+  font-weight: 400;
+  transition: color 0.15s;
+}
+
+.footer-legal-links a:hover {
+  color: rgba(240, 240, 245, 0.7);
+}
+
+.footer-dot {
+  color: rgba(240, 240, 245, 0.15);
+  font-size: 0.6rem;
+}
+

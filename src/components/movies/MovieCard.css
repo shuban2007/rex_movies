@@ -198,3 +198,44 @@
 .auth-prompt-close:hover {
   color: rgba(240, 240, 245, 0.9);
 }
+
+/* ─── Mobile ─────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .movie-card:hover,
+  .movie-card:focus-visible {
+    transform: none; /* Disable hover lift on mobile */
+  }
+
+  .movie-card-poster-wrapper {
+    border-radius: 10px;
+  }
+
+  /* Always show watchlist button on touch devices */
+  .watchlist-btn {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .watchlist-btn:not(.active) {
+    background: rgba(0, 0, 0, 0.6);
+  }
+
+  .play-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .play-icon svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .movie-card-title {
+    font-size: 0.82rem;
+  }
+
+  .movie-card-year {
+    font-size: 0.75rem;
+  }
+}
+

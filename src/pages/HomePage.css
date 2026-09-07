@@ -18,3 +18,14 @@
   flex-direction: column;
   gap: 1rem;
 }
+
+@media (max-width: 768px) {
+  .home-content {
+    padding-bottom: 2rem;
+  }
+
+  .discovery-sections {
+    gap: 0.25rem;
+  }
+}
+

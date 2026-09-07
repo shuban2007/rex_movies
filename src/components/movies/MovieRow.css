@@ -61,9 +61,18 @@
 }
 
 @media (max-width: 768px) {
+  .movie-row-section {
+    margin: 1rem 0;
+  }
+
   .movie-row-header {
     padding: 0 16px;
   }
+
+  .movie-row-title {
+    font-size: 1.1rem;
+  }
+
   .movie-row-scroll {
     padding: 0.5rem 16px 1.5rem 16px;
     gap: 0.75rem;
@@ -78,3 +87,4 @@
     flex: 0 0 calc((100vw - 32px - (1.5 * 0.75rem)) / 2.5); /* Show 2.5 cards */
   }
 }
+

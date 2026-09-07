@@ -1,17 +1,20 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { VideoPlayer } from '../components/player/VideoPlayer';
-import { getMovieDetails, type MovieSearchResult } from '../services/tmdb';
+import { getMovieDetails, getTvDetails, type MovieSearchResult, type TvSeriesDetails } from '../services/tmdb';
 import { RecommendationSection } from '../components/recommendations/RecommendationSection';
+import { EpisodeList } from '../components/tv/EpisodeList';
 import { historyService } from '../services/history';
 import { watchlistService } from '../services/watchlist';
 import { useAuth } from '../hooks/useAuth';
 import './WatchPage.css';
 
 export function WatchPage() {
-  const { tmdbId } = useParams<{ tmdbId: string }>();
-  const [movie, setMovie] = useState<MovieSearchResult | null>(null);
+  const { mediaType = 'movie', tmdbId } = useParams<{ mediaType?: 'movie' | 'tv', tmdbId: string }>();
+  const [media, setMedia] = useState<MovieSearchResult | TvSeriesDetails | null>(null);
   const [inWatchlist, setInWatchlist] = useState(false);
+  const [activeSeason, setActiveSeason] = useState<number>(1);
+  const [activeEpisode, setActiveEpisode] = useState<number>(1);
   
   const { user } = useAuth();
 
@@ -21,13 +24,25 @@ export function WatchPage() {
   useEffect(() => {
     let mounted = true;
     
-    async function loadMovieAndRecord() {
+    async function loadMediaAndRecord() {
       if (!isValidId || !numericId) return;
       
       try {
-        const data = await getMovieDetails(numericId);
+        let data: MovieSearchResult | TvSeriesDetails | null = null;
+        
+        if (mediaType === 'tv') {
+          data = await getTvDetails(numericId);
+          if (data && 'seasons' in data && data.seasons.length > 0) {
+            const firstValidSeason = data.seasons.find(s => s.seasonNumber > 0) || data.seasons[0];
+            setActiveSeason(firstValidSeason.seasonNumber);
+            setActiveEpisode(1);
+          }
+        } else {
+          data = await getMovieDetails(numericId);
+        }
+
         if (mounted && data) {
-          setMovie(data);
+          setMedia(data);
           
           // Asynchronously record history without blocking player
           historyService.recordMovie(data, user?.id);
@@ -36,15 +51,15 @@ export function WatchPage() {
           setInWatchlist(watchlistService.isInWatchlistSync(data.id));
         }
       } catch (err) {
-        console.error('Failed to load movie for history recording:', err);
+        console.error('Failed to load media for history recording:', err);
       }
     }
 
-    loadMovieAndRecord();
+    loadMediaAndRecord();
     
     const handleWatchlistUpdate = () => {
-      if (movie && mounted) {
-        setInWatchlist(watchlistService.isInWatchlistSync(movie.id));
+      if (media && mounted) {
+        setInWatchlist(watchlistService.isInWatchlistSync(media.id));
       }
     };
     
@@ -53,27 +68,29 @@ export function WatchPage() {
       mounted = false;
       window.removeEventListener('watchlist-updated', handleWatchlistUpdate);
     };
-  }, [isValidId, numericId, user?.id, movie?.id]);
+  }, [isValidId, numericId, mediaType, user?.id, media?.id]);
 
   const toggleWatchlist = async () => {
-    if (!movie) return;
+    if (!media) return;
 
     if (inWatchlist) {
-      await watchlistService.removeMovie(movie.id, user?.id);
+      await watchlistService.removeMovie(media.id, user?.id);
     } else {
-      await watchlistService.addMovie(movie, user?.id);
+      await watchlistService.addMovie(media, user?.id);
     }
   };
 
   if (!isValidId) {
     return (
       <div className="watch-page-error">
-        <h1>Invalid Movie ID</h1>
-        <p>The requested movie could not be found.</p>
+        <h1>Invalid ID</h1>
+        <p>The requested media could not be found.</p>
         <Link to="/" className="back-link">Return Home</Link>
       </div>
     );
   }
+
+  const isTv = mediaType === 'tv';
 
   return (
     <div className="watch-page">
@@ -89,34 +106,44 @@ export function WatchPage() {
 
         <div className="watch-main-layout">
           <div className="player-section">
-            <VideoPlayer tmdbId={numericId} />
+            <VideoPlayer 
+              tmdbId={numericId} 
+              mediaType={isTv ? 'tv' : 'movie'}
+              season={isTv ? activeSeason : undefined}
+              episode={isTv ? activeEpisode : undefined}
+            />
           </div>
 
-          {movie && (
+          {media && (
             <div className="movie-details-section">
-              {(movie.backdropPath || movie.posterPath) && (
-                <div className="movie-image-wrapper">
-                  <img 
-                    src={`https://image.tmdb.org/t/p/w780${movie.backdropPath || movie.posterPath}`} 
-                    alt={movie.title} 
-                    className="movie-details-img" 
-                  />
+              <div className="movie-details-top">
+                {(media.posterPath || media.backdropPath) && (
+                  <div className="movie-image-wrapper">
+                    <img 
+                      src={`https://image.tmdb.org/t/p/w342${media.posterPath || media.backdropPath}`} 
+                      alt={media.title} 
+                      className="movie-details-img" 
+                    />
+                  </div>
+                )}
+                
+                <div className="movie-info-content">
+                  <h1 className="movie-title">{media.title}</h1>
+                  <p className="movie-metadata">
+                    {media.year || ''} • {isTv ? 'TV Series' : 'Movie'}
+                    {isTv && 'seasons' in media && ` • ${media.seasons.length} Seasons`}
+                  </p>
+                  
+                  {media.overview && (
+                    <p className="movie-overview">{media.overview}</p>
+                  )}
                 </div>
-              )}
-              
-              <h1 className="movie-title">{movie.title}</h1>
-              <p className="movie-metadata">
-                {movie.year || ''} • Movie
-              </p>
-              
-              {movie.overview && (
-                <p className="movie-overview">{movie.overview}</p>
-              )}
+              </div>
               
               <button 
                 className={`watch-watchlist-btn ${inWatchlist ? 'active' : ''}`}
                 onClick={toggleWatchlist}
-                disabled={!movie}
+                disabled={!media}
               >
                 {inWatchlist ? (
                   <>
@@ -137,6 +164,17 @@ export function WatchPage() {
             </div>
           )}
         </div>
+
+        {isTv && media && 'seasons' in media && numericId && (
+          <EpisodeList 
+            seriesId={numericId}
+            seasons={(media as TvSeriesDetails).seasons}
+            activeSeason={activeSeason}
+            activeEpisode={activeEpisode}
+            onSeasonChange={(s) => { setActiveSeason(s); setActiveEpisode(1); }}
+            onEpisodeSelect={(e) => setActiveEpisode(e)}
+          />
+        )}
 
         <div className="recommendations-container">
           <RecommendationSection tmdbId={numericId} />

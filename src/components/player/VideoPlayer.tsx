@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { buildMovieEmbedUrl } from '../../utils/embedUrl';
+import { getEnabledProviders, getDefaultProvider } from '../../config/providers';
 import './VideoPlayer.css';
 
 export type PlayerState = 'empty' | 'loading' | 'loaded' | 'error';
@@ -11,20 +11,41 @@ interface VideoPlayerProps {
   title?: string;
   /** Called when the user clicks Retry after an error. */
   onRetry?: () => void;
+  /** Media type for selecting the correct providers. */
+  mediaType?: 'movie' | 'tv';
+  /** TV Season Number */
+  season?: number;
+  /** TV Episode Number */
+  episode?: number;
 }
 
-export function VideoPlayer({ tmdbId, title, onRetry }: VideoPlayerProps) {
+export function VideoPlayer({ tmdbId, title, onRetry, mediaType = 'movie', season, episode }: VideoPlayerProps) {
   const [state, setState] = useState<PlayerState>('empty');
+  const [selectedProviderId, setSelectedProviderId] = useState<string>('');
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const loadTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // When the ID changes, transition states
+  const availableProviders = getEnabledProviders(mediaType);
+
+  // Auto-select default provider if none selected or selected is disabled
+  useEffect(() => {
+    if (availableProviders.length > 0) {
+      if (!selectedProviderId || !availableProviders.find(p => p.id === selectedProviderId)) {
+        const defaultProvider = getDefaultProvider(mediaType);
+        setSelectedProviderId(defaultProvider ? defaultProvider.id : availableProviders[0].id);
+      }
+    } else {
+      setSelectedProviderId('');
+    }
+  }, [mediaType, availableProviders, selectedProviderId]);
+
+  // When the ID or provider changes, transition states
   useEffect(() => {
     if (loadTimerRef.current) {
       clearTimeout(loadTimerRef.current);
     }
 
-    if (!tmdbId) {
+    if (!tmdbId || !selectedProviderId) {
       setState('empty');
       return;
     }
@@ -40,7 +61,7 @@ export function VideoPlayer({ tmdbId, title, onRetry }: VideoPlayerProps) {
     return () => {
       if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
     };
-  }, [tmdbId]);
+  }, [tmdbId, selectedProviderId, season, episode]);
 
   const handleIframeLoad = useCallback(() => {
     if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
@@ -50,12 +71,54 @@ export function VideoPlayer({ tmdbId, title, onRetry }: VideoPlayerProps) {
   const handleIframeError = useCallback(() => {
     if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
     setState('error');
-  }, []);
+    
+    // Fallback logic
+    const currentIndex = availableProviders.findIndex(p => p.id === selectedProviderId);
+    if (currentIndex >= 0 && currentIndex < availableProviders.length - 1) {
+      // Auto-fallback to next provider if available
+      setTimeout(() => setSelectedProviderId(availableProviders[currentIndex + 1].id), 2000);
+    }
+  }, [selectedProviderId, availableProviders]);
 
-  const embedUrl = tmdbId ? buildMovieEmbedUrl(tmdbId) : null;
+  const selectedProvider = availableProviders.find(p => p.id === selectedProviderId);
+  const embedUrl = (tmdbId && selectedProvider) 
+    ? selectedProvider.buildUrl({ tmdbId, season, episode }) 
+    : null;
 
   return (
     <section className="video-player" aria-label="Video player">
+      {/* Dynamic Provider Selector */}
+      {tmdbId && availableProviders.length > 0 && (
+        <div className="player-controls">
+          <div className="provider-selector-container">
+            <span className="provider-selector-label">SERVER:</span>
+            {availableProviders.length === 1 ? (
+              <div className="single-provider-pill">
+                <span className="status-dot"></span>
+                <span className="single-provider-text">{availableProviders[0].name}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="provider-chevron">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+            ) : (
+              <select
+                id="provider-select"
+                value={selectedProviderId}
+                onChange={(e) => setSelectedProviderId(e.target.value)}
+                className="provider-dropdown"
+                aria-label="Select streaming server"
+              >
+                {availableProviders.map((provider) => (
+                  <option key={provider.id} value={provider.id}>
+                    {provider.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="player-shell">
         <div className="player-aspect-ratio">
           {/* ── Empty State ──────────────────────────────── */}
@@ -97,6 +160,9 @@ export function VideoPlayer({ tmdbId, title, onRetry }: VideoPlayerProps) {
               <p className="error-title">Player unavailable</p>
               <p className="error-subtitle">
                 The external provider may be unavailable.
+                {availableProviders.findIndex(p => p.id === selectedProviderId) < availableProviders.length - 1 
+                  ? " Trying another server..." 
+                  : " Try selecting a different server manually."}
               </p>
               {onRetry && (
                 <button
