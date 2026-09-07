@@ -12,98 +12,80 @@ export interface Provider {
   mediaType: MediaType;
   enabled: boolean;
   isDefault?: boolean;
+  hasAds?: boolean;
+  disableSandbox?: boolean;
   buildUrl: (params: ProviderParams) => string;
 }
 
 export const providers: Provider[] = [
   // MOVIE PROVIDERS
   {
-    id: 'vidsrc-movie',
-    name: 'VidSrc',
+    id: 'cinesrc-movie',
+    name: 'CineSrc',
     mediaType: 'movie',
-    enabled: false,
-    buildUrl: ({ tmdbId }) => `https://v1.vidsrc.wiki/embed/movie/${tmdbId}/`,
-  },
-  {
-    id: 'autoembed-movie',
-    name: 'AutoEmbed',
-    mediaType: 'movie',
-    enabled: false,
-    buildUrl: ({ tmdbId }) => `https://autoembed.app/embed/movie/${tmdbId}`,
-  },
-  {
-    id: 'autoembed-movie-2',
-    name: 'AutoEmbed Server 2',
-    mediaType: 'movie',
-    enabled: false,
-    buildUrl: ({ tmdbId }) => `https://autoembed.app/embed/movie/${tmdbId}?server=2`,
-  },
-  {
-    id: 'watch-v2-autoembed-movie',
-    name: 'AutoEmbed Watch v2',
-    mediaType: 'movie',
-    enabled: false,
-    buildUrl: ({ tmdbId }) => `https://watch-v2.autoembed.app/embed/movie/${tmdbId}`,
+    enabled: true,
+    isDefault: true,
+    hasAds: true,
+    buildUrl: ({ tmdbId }) => `https://cinesrc.st/embed/movie/${tmdbId}`,
   },
   {
     id: 'vidsrc-sbs-movie',
     name: 'VidSrc SBS',
     mediaType: 'movie',
     enabled: true,
-    isDefault: true,
     buildUrl: ({ tmdbId }) => `https://vidsrc.sbs/embed/movie/${tmdbId}`,
   },
   {
-    id: 'vidsrc-wiki-movie',
-    name: 'VidSrc',
+    id: 'vidcore-movie',
+    name: 'VidCore',
     mediaType: 'movie',
-    enabled: false,
-    buildUrl: ({ tmdbId }) => `https://v1.vidsrc.wiki/embed/movie/${tmdbId}/`,
+    enabled: true,
+    hasAds: true,
+    buildUrl: ({ tmdbId }) => `https://vidcore.org/embed/movie/${tmdbId}`,
+  },
+  {
+    id: 'filmu-movie',
+    name: 'FilmU',
+    mediaType: 'movie',
+    enabled: true,
+    hasAds: true,
+    disableSandbox: true,
+    buildUrl: ({ tmdbId }) => `https://embed.filmu.in/movie/${tmdbId}`,
   },
 
   // TV PROVIDERS
   {
-    id: 'vidsrc-tv',
-    name: 'VidSrc',
+    id: 'cinesrc-tv',
+    name: 'CineSrc',
     mediaType: 'tv',
-    enabled: false,
-    buildUrl: ({ tmdbId, season, episode }) => `https://v1.vidsrc.wiki/embed/tv/${tmdbId}/${season}/${episode}/`,
-  },
-  {
-    id: 'autoembed-tv',
-    name: 'AutoEmbed',
-    mediaType: 'tv',
-    enabled: false,
-    buildUrl: ({ tmdbId, season, episode }) => `https://autoembed.app/embed/tv/${tmdbId}/${season}/${episode}`,
-  },
-  {
-    id: 'autoembed-tv-2',
-    name: 'AutoEmbed Server 2',
-    mediaType: 'tv',
-    enabled: false,
-    buildUrl: ({ tmdbId, season, episode }) => `https://autoembed.app/embed/tv/${tmdbId}/${season}/${episode}?server=2`,
-  },
-  {
-    id: 'watch-v2-autoembed-tv',
-    name: 'AutoEmbed Watch v2',
-    mediaType: 'tv',
-    enabled: false,
-    buildUrl: ({ tmdbId, season, episode }) => `https://watch-v2.autoembed.app/embed/tv/${tmdbId}/${season}/${episode}`,
-  },
-  {
-    id: 'vidsrc-wiki-tv',
-    name: 'VidSrc',
-    mediaType: 'tv',
-    enabled: false,
-    buildUrl: ({ tmdbId, season, episode }) => `https://v1.vidsrc.wiki/embed/tv/${tmdbId}/${season}/${episode}/`,
+    enabled: true,
+    isDefault: true,
+    hasAds: true,
+    buildUrl: ({ tmdbId, season, episode }) => `https://cinesrc.st/embed/tv/${tmdbId}?s=${season}&e=${episode}`,
   },
   {
     id: 'vidsrc-sbs-tv',
     name: 'VidSrc SBS',
     mediaType: 'tv',
     enabled: true,
-    isDefault: true,
     buildUrl: ({ tmdbId, season, episode }) => `https://vidsrc.sbs/embed/tv/${tmdbId}/${season}/${episode}`,
+  },
+  {
+    id: 'vidcore-tv',
+    name: 'VidCore',
+    mediaType: 'tv',
+    enabled: true,
+    hasAds: true,
+    buildUrl: ({ tmdbId, season, episode }) => `https://vidcore.org/embed/tv/${tmdbId}/${season}/${episode}`,
+  },
+  {
+    id: 'filmu-tv',
+    name: 'FilmU',
+    mediaType: 'tv',
+    enabled: true,
+    hasAds: true,
+    disableSandbox: true,
+    buildUrl: ({ tmdbId, season, episode }) => `https://embed.filmu.in/tv/${tmdbId}/${season}/${episode}`,
   },
 ];
 

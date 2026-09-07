@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getTvSeasonEpisodes, type TvSeason, type TvEpisode } from '../../services/tmdb';
+import { CustomSelect } from '../ui/CustomSelect';
 import './EpisodeList.css';
 
 interface EpisodeListProps {
@@ -62,18 +63,15 @@ export function EpisodeList({
         <h3 className="episode-section-title">Episodes</h3>
         <div className="season-selector">
           <label htmlFor="season-select" className="visually-hidden">Season</label>
-          <select
+          <CustomSelect
             id="season-select"
-            className="season-dropdown-modern"
             value={activeSeason}
-            onChange={(e) => onSeasonChange(Number(e.target.value))}
-          >
-            {seasons.map((season) => (
-              <option key={season.seasonNumber} value={season.seasonNumber}>
-                {season.name} ({season.episodeCount} episodes)
-              </option>
-            ))}
-          </select>
+            onChange={(val) => onSeasonChange(Number(val))}
+            options={seasons.map((season) => ({
+              value: season.seasonNumber,
+              label: `${season.name} (${season.episodeCount} episodes)`
+            }))}
+          />
         </div>
       </div>
 

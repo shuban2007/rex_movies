@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { getEnabledProviders, getDefaultProvider } from '../../config/providers';
+import { CustomSelect } from '../ui/CustomSelect';
 import './VideoPlayer.css';
 
 export type PlayerState = 'empty' | 'loading' | 'loaded' | 'error';
@@ -101,21 +102,20 @@ export function VideoPlayer({ tmdbId, title, onRetry, mediaType = 'movie', seaso
                 </svg>
               </div>
             ) : (
-              <select
+              <CustomSelect
                 id="provider-select"
                 value={selectedProviderId}
-                onChange={(e) => setSelectedProviderId(e.target.value)}
-                className="provider-dropdown"
-                aria-label="Select streaming server"
-              >
-                {availableProviders.map((provider) => (
-                  <option key={provider.id} value={provider.id}>
-                    {provider.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setSelectedProviderId(val as string)}
+                options={availableProviders.map(p => ({ value: p.id, label: p.name }))}
+                ariaLabel="Select streaming server"
+              />
             )}
           </div>
+          {selectedProvider?.hasAds && (
+            <div className="provider-ads-warning">
+              Third-party server • Ads may be present. An ad blocker is recommended.
+            </div>
+          )}
         </div>
       )}
 
@@ -183,6 +183,9 @@ export function VideoPlayer({ tmdbId, title, onRetry, mediaType = 'movie', seaso
               className={`player-iframe ${state === 'loaded' ? 'player-iframe--visible' : ''}`}
               src={embedUrl}
               title={title ? `${title} — Rex.io Video Player` : 'Rex.io Video Player'}
+              {...(!selectedProvider?.disableSandbox && {
+                sandbox: "allow-scripts allow-same-origin allow-presentation allow-forms"
+              })}
               allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
               allowFullScreen
               referrerPolicy="no-referrer"

@@ -45,24 +45,6 @@
   border: 0;
 }
 
-.season-dropdown-modern {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(240, 240, 245, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0.4rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-family: inherit;
-  font-weight: 500;
-  outline: none;
-  cursor: pointer;
-}
-
-.season-dropdown-modern option {
-  background: #0f0f13;
-  color: #fff;
-}
-
 /* ── Scrollable Episode Grid ── */
 .episode-grid-scroll {
   overflow-x: auto;
@@ -174,11 +156,6 @@
   .episode-header-row {
     padding: 0 1rem;
     margin-bottom: 0.75rem;
-  }
-
-  .season-dropdown-modern {
-    font-size: 0.8rem;
-    padding: 0.35rem 0.6rem;
   }
 
   /* Remove 2-row grid constraints on mobile */
