@@ -1,0 +1,161 @@
+.account-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.account-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 20px;
+  transition: background 0.2s;
+}
+
+.account-trigger:hover,
+.account-trigger[aria-expanded="true"] {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.avatar-placeholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4b32c3 0%, #291a70 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.account-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: rgba(240, 240, 245, 0.9);
+  padding-right: 0.25rem;
+}
+
+.account-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: 260px;
+  background: var(--glass-bg, rgba(15, 15, 20, 0.85));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  z-index: 100;
+  animation: dropdownSlide 0.2s ease-out;
+}
+
+@keyframes dropdownSlide {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.account-dropdown-header {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.account-dropdown-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(240, 240, 245, 0.95);
+}
+
+.account-dropdown-status {
+  font-size: 0.8rem;
+  color: rgba(240, 240, 245, 0.5);
+}
+
+.account-dropdown-actions {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.btn-google-signin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem;
+  background: #ffffff;
+  color: #3c4043;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  opacity: 0.8;
+}
+
+.btn-google-signin:hover {
+  background: #f8f9fa;
+  opacity: 1;
+}
+
+.auth-notice {
+  margin: 0;
+  font-size: 0.75rem;
+  color: rgba(240, 240, 245, 0.4);
+  text-align: center;
+}
+
+.avatar-image {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dropdown-link {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  color: rgba(240, 240, 245, 0.9);
+  text-decoration: none;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.dropdown-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.btn-signout {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  color: rgba(240, 240, 245, 0.9);
+  border: none;
+  text-align: left;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-signout:hover {
+  background: rgba(229, 9, 20, 0.1);
+  color: #e50914;
+}
+
+@media (max-width: 768px) {
+  .account-label {
+    display: none;
+  }
+}
+

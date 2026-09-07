@@ -1,0 +1,31 @@
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.clear-history-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(240, 240, 245, 0.8);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-history-btn:hover {
+  background: rgba(229, 9, 20, 0.1); /* Subtle red */
+  color: #e50914;
+  border-color: rgba(229, 9, 20, 0.3);
+}
+
+@media (max-width: 768px) {
+  .history-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}

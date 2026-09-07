@@ -1,0 +1,121 @@
+/* ═══════════════════════════════════════════════════════════
+   Header — Styles
+   ═══════════════════════════════════════════════════════════ */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--glass-bg, rgba(7, 7, 11, 0.7));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0.75rem 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.header-logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.header-logo {
+  height: 36px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: rgba(240, 240, 245, 0.6);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0.5rem 0;
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+  color: rgba(240, 240, 245, 0.9);
+}
+
+.nav-link.active {
+  color: rgba(240, 240, 245, 1);
+}
+
+.nav-icon {
+  font-size: 1.1rem;
+}
+
+.nav-account-wrapper {
+  margin-left: 0.5rem;
+  padding-left: 1.5rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+}
+
+/* ─── Responsive ──────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .header-inner {
+    padding: 0.75rem 16px;
+  }
+
+  .header-logo {
+    height: 28px;
+  }
+
+  .nav-text {
+    display: none;
+  }
+  
+  .nav-icon {
+    font-size: 1.3rem;
+  }
+
+  .header-nav {
+    gap: 1rem;
+  }
+  
+  .nav-account-wrapper {
+    margin-left: 0;
+    padding-left: 1rem;
+  }
+}
+
+@media (max-width: 500px) {
+  .header-inner {
+    padding: 0.75rem 12px;
+  }
+  
+  .header-logo {
+    height: 24px;
+  }
+  
+  .header-nav {
+    gap: 0.75rem;
+  }
+  
+  .nav-account-wrapper {
+    padding-left: 0.75rem;
+  }
+}

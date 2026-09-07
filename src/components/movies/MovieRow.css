@@ -1,0 +1,80 @@
+.movie-row-section {
+  width: 100%;
+  margin: 2rem 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.movie-row-header {
+  padding: 0 24px;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto 1rem auto;
+}
+
+.movie-row-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: rgba(240, 240, 245, 0.95);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.movie-row-container {
+  width: 100%;
+  overflow: hidden; /* Hide outer scrollbar */
+}
+
+.movie-row-scroll {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem 24px 2rem 24px;
+  /* Smooth scrolling and hide scrollbar */
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.movie-row-scroll::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Base item size constraints */
+.movie-row-item {
+  flex: 0 0 220px; /* Desktop default width */
+  min-width: 0;
+}
+
+@media (max-width: 1400px) {
+  .movie-row-item {
+    flex: 0 0 calc((100vw - 48px - (4 * 1rem)) / 5); /* 5 cards roughly */
+  }
+}
+
+@media (max-width: 1024px) {
+  .movie-row-item {
+    flex: 0 0 calc((100vw - 48px - (3 * 1rem)) / 4); /* 4 cards */
+  }
+}
+
+@media (max-width: 768px) {
+  .movie-row-header {
+    padding: 0 16px;
+  }
+  .movie-row-scroll {
+    padding: 0.5rem 16px 1.5rem 16px;
+    gap: 0.75rem;
+  }
+  .movie-row-item {
+    flex: 0 0 calc((100vw - 32px - (2.5 * 0.75rem)) / 3.5); /* Show 3.5 cards to hint scroll */
+  }
+}
+
+@media (max-width: 480px) {
+  .movie-row-item {
+    flex: 0 0 calc((100vw - 32px - (1.5 * 0.75rem)) / 2.5); /* Show 2.5 cards */
+  }
+}
