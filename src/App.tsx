@@ -10,6 +10,7 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { PrivacyPolicyPage, CookiePolicyPage, TermsConditionsPage, TermsOfUsePage } from './pages/LegalPages';
 import { AdBlockerPopup, AdBlockerBanner } from './components/AdBlockerNotice';
 import { PWAProvider } from './context/PWAContext';
+import { SplashScreen } from './components/ui/SplashScreen';
 import './App.css';
 
 function MobileBottomNav() {
@@ -56,6 +57,7 @@ function MobileBottomNav() {
 export default function App() {
   return (
     <PWAProvider>
+      <SplashScreen />
       <div className="app">
         <ScrollToTop />
         <Header />
