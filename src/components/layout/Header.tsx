@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { AccountMenu } from '../account/AccountMenu';
 import { MovieSearch } from '../search/MovieSearch';
+import { InstallButton } from '../pwa/InstallButton';
 import './Header.css';
 
 export function Header() {
@@ -15,8 +16,9 @@ export function Header() {
         </Link>
 
         <MovieSearch />
-        
+
         <nav className="header-nav">
+          <InstallButton />
           <Link to="/watchlist" className={`nav-link ${isActive('/watchlist') ? 'active' : ''}`}>
             <span className="nav-icon">♡</span>
             <span className="nav-text">Watchlist</span>

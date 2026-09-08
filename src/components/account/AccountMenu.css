@@ -153,6 +153,59 @@
   color: #e50914;
 }
 
+/* ── PWA Install Section ── */
+.account-dropdown-install {
+  padding: 0.5rem 1rem 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.btn-install-app {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: rgba(139, 124, 246, 0.1);
+  border: 1px solid rgba(139, 124, 246, 0.2);
+  border-radius: 8px;
+  color: #8b7cf6;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-install-app:hover {
+  background: rgba(139, 124, 246, 0.18);
+  border-color: rgba(139, 124, 246, 0.35);
+}
+
+.install-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: rgba(240, 240, 245, 0.5);
+  padding: 0.3rem 0;
+}
+
+.install-status.installed svg {
+  color: #34d399;
+}
+
+.install-status.ios-hint p {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: rgba(240, 240, 245, 0.5);
+}
+
+.install-status.ios-hint strong {
+  color: rgba(240, 240, 245, 0.8);
+}
+
 @media (max-width: 768px) {
   .account-label {
     display: none;
