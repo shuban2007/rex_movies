@@ -24,6 +24,9 @@
     left: 0;
     right: 0;
     z-index: 200;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     background: rgba(10, 10, 15, 0.95);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -43,7 +46,9 @@
     color: rgba(240, 240, 245, 0.45);
     font-size: 0.65rem;
     font-weight: 500;
-    padding: 0.3rem 0.75rem;
+    flex: 1;
+    min-width: 0;
+    padding: 0.3rem 0.2rem;
     transition: color 0.2s ease;
     -webkit-tap-highlight-color: transparent;
   }
@@ -65,4 +70,5 @@
     padding-bottom: 80px;
   }
 }
+
 

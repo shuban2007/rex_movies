@@ -210,11 +210,15 @@
     flex: 1;
     min-width: 0;
     margin: 0 0.5rem;
+    width: 100%;
+    max-width: 100%;
   }
 
   .navbar-search-input {
     height: 34px;
     font-size: 0.8rem;
+    width: 100%;
+    max-width: 100%;
   }
 
   .navbar-search-dropdown {
@@ -223,6 +227,7 @@
     left: 8px;
     right: 8px;
     width: auto;
+    max-width: calc(100vw - 16px);
     max-height: 60vh;
   }
 }

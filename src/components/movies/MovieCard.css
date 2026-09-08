@@ -201,6 +201,11 @@
 
 /* ─── Mobile ─────────────────────────────────────────────────── */
 @media (max-width: 768px) {
+  .movie-card {
+    min-width: 0;
+    max-width: 100%;
+  }
+
   .movie-card:hover,
   .movie-card:focus-visible {
     transform: none; /* Disable hover lift on mobile */
@@ -208,6 +213,7 @@
 
   .movie-card-poster-wrapper {
     border-radius: 10px;
+    max-width: 100%;
   }
 
   /* Always show watchlist button on touch devices */
@@ -232,10 +238,16 @@
 
   .movie-card-title {
     font-size: 0.82rem;
+    overflow-wrap: anywhere;
   }
 
   .movie-card-year {
     font-size: 0.75rem;
+  }
+
+  .movie-card-info {
+    min-width: 0;
+    max-width: 100%;
   }
 }
 

@@ -180,6 +180,12 @@
     border-radius: 10px;
   }
 
+  .player-state {
+    padding: 1rem;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
   .empty-title {
     font-size: 0.95rem;
   }
@@ -187,6 +193,9 @@
   .empty-subtitle,
   .error-subtitle {
     font-size: 0.75rem;
+    width: 100%;
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
 }
 
@@ -264,12 +273,24 @@
 
 /* ─── Mobile Provider Selector ─────────────────────────────── */
 @media (max-width: 768px) {
+  .video-player {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
   .player-controls {
     margin-bottom: 0.6rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
   }
 
   .provider-selector-container {
     gap: 0.5rem;
+    min-width: 0;
+    flex-wrap: wrap;
   }
 
   .provider-selector-label {
@@ -279,19 +300,30 @@
   .single-provider-pill {
     padding: 0.3rem 0.6rem;
     gap: 0.35rem;
+    min-width: 0;
   }
 
   .single-provider-text {
     font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
   }
 
   .provider-ads-warning {
     margin-left: 0;
     margin-top: 0.4rem;
     font-size: 0.65rem;
+    overflow-wrap: anywhere;
   }
 
   .player-shell {
     border-radius: 10px;
+    max-width: 100%;
+  }
+
+  .player-aspect-ratio {
+    max-width: 100%;
   }
 }

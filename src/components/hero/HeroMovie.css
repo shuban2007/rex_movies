@@ -163,27 +163,33 @@
     height: 50vh;
     min-height: 320px;
     max-height: 450px;
+    width: 100%;
+    max-width: 100%;
   }
   
   .hero-content {
     padding: 1.5rem 16px 3rem 16px;
     gap: 0.6rem;
+    max-width: 100%;
+    min-width: 0;
   }
   
   .hero-title {
     font-size: 1.75rem;
     max-width: 280px;
+    overflow-wrap: anywhere;
   }
 
   .hero-meta {
     font-size: 0.85rem;
     gap: 0.6rem;
+    flex-wrap: wrap;
   }
   
   .hero-overview {
     font-size: 0.82rem;
     line-height: 1.45;
-    max-width: 320px;
+    max-width: 100%;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
@@ -193,6 +199,7 @@
   .hero-actions {
     margin-top: 0.5rem;
     gap: 0.6rem;
+    flex-wrap: wrap;
   }
   
   .hero-btn {

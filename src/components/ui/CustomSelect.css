@@ -100,3 +100,19 @@
   color: #8b7cf6;
   font-weight: 500;
 }
+
+@media (max-width: 768px) {
+  .custom-select-container {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .custom-select-dropdown {
+    min-width: 0;
+    max-width: calc(100vw - 32px);
+  }
+
+  .custom-select-value {
+    min-width: 0;
+  }
+}

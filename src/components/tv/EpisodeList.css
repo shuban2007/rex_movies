@@ -151,11 +151,16 @@
   .episode-list-section {
     padding: 0.75rem 0;
     border-radius: 8px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   .episode-header-row {
     padding: 0 1rem;
     margin-bottom: 0.75rem;
+    min-width: 0;
   }
 
   /* Remove 2-row grid constraints on mobile */
@@ -165,6 +170,9 @@
     max-height: 360px;
     scrollbar-width: thin;
     scrollbar-color: rgba(255,255,255,0.1) transparent;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .episode-grid-wrap {
@@ -173,6 +181,9 @@
     height: auto;
     gap: 0;
     padding: 0 0.5rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   /* Transform buttons into full-width list rows */
@@ -186,6 +197,9 @@
     gap: 0.75rem;
     font-size: 0.85rem;
     text-align: left;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .episode-page-btn:hover {
@@ -241,6 +255,7 @@
     display: none;
   }
 }
+
 
 @media (max-width: 480px) {
   .episode-header-row {

@@ -89,10 +89,21 @@
 @media (max-width: 768px) {
   .collection-page {
     padding: 2rem 16px 4rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
   
   .collection-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(140px, 45%), 1fr));
     gap: 1rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .collection-title {
+    overflow-wrap: anywhere;
   }
 }

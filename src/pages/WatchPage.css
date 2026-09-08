@@ -228,8 +228,18 @@
 }
 
 @media (max-width: 768px) {
+  .watch-page {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
   .watch-content-container {
     padding: 1rem 12px 2rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   .watch-header-nav {
@@ -248,23 +258,42 @@
 
   .watch-main-layout {
     gap: 1rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .player-section {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   /* Keep poster + info side by side, but smaller poster */
   .movie-details-top {
     gap: 1rem;
+    min-width: 0;
   }
 
   .movie-image-wrapper {
     width: 100px;
+    flex-shrink: 0;
+  }
+
+  .movie-info-content {
+    min-width: 0;
+    flex: 1;
   }
 
   .movie-title {
     font-size: 1.15rem;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .movie-metadata {
     font-size: 0.8rem;
+    overflow-wrap: anywhere;
   }
 
   .movie-overview {
@@ -274,6 +303,7 @@
     -webkit-line-clamp: 4;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    overflow-wrap: anywhere;
   }
 
   .watch-watchlist-btn {
@@ -284,6 +314,8 @@
 
   .movie-details-section {
     gap: 1rem;
+    min-width: 0;
+    max-width: 100%;
   }
 }
 
@@ -296,4 +328,5 @@
     font-size: 1.05rem;
   }
 }
+
 

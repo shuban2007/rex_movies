@@ -157,5 +157,10 @@
   .account-label {
     display: none;
   }
+
+  .account-dropdown {
+    width: min(260px, calc(100vw - 24px));
+    right: -8px;
+  }
 }
 
