@@ -8,6 +8,36 @@ const OPERA_URL = 'https://www.opera.com/download?utm_source=chatgpt.com';
 export function AdBlockerPopup() {
   const [visible, setVisible] = useState(true);
 
+  // Check if browser natively blocks ads/trackers
+  useEffect(() => {
+    let active = true;
+    const checkBrowser = async () => {
+      const ua = navigator.userAgent;
+      const isOpera = ua.includes('OPR/') || ua.includes('Opera');
+      const isVivaldi = ua.includes('Vivaldi');
+      const isFirefox = ua.includes('Firefox') || ua.includes('FxiOS');
+      const isDuckDuckGo = ua.includes('DuckDuckGo');
+      const isSamsung = ua.includes('SamsungBrowser');
+      const isArc = ua.includes('Arc');
+      
+      let isBrave = false;
+      if ((navigator as any).brave && typeof (navigator as any).brave.isBrave === 'function') {
+        try {
+          isBrave = await (navigator as any).brave.isBrave();
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      if (active && (isBrave || isOpera || isVivaldi || isFirefox || isDuckDuckGo || isSamsung || isArc)) {
+        setVisible(false);
+      }
+    };
+    checkBrowser();
+    
+    return () => { active = false; };
+  }, []);
+
   const dismiss = useCallback(() => setVisible(false), []);
 
   // Auto-dismiss after 5 seconds

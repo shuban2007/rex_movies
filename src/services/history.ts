@@ -7,10 +7,42 @@ const GUEST_HISTORY_KEY = 'guest_history';
 function getGuestHistory(): HistoryItem[] {
   try {
     const data = sessionStorage.getItem(GUEST_HISTORY_KEY);
-    return data ? JSON.parse(data) : [];
+    const parsed = data ? JSON.parse(data) : [];
+    
+    // Deduplicate on load
+    const deduplicated = deduplicateHistory(parsed);
+    if (deduplicated.length !== parsed.length) {
+      setGuestHistory(deduplicated);
+    }
+    
+    return deduplicated;
   } catch (err) {
     return [];
   }
+}
+
+/**
+ * Deduplicates a list of history items, keeping only the most recently 
+ * updated record for each unique mediaType + tmdbId combination.
+ */
+function deduplicateHistory(list: HistoryItem[]): HistoryItem[] {
+  const map = new Map<string, HistoryItem>();
+  
+  // Assuming list is sorted newest first, but let's sort to be safe
+  const sorted = [...list].sort((a, b) => {
+    return new Date(b.watched_at).getTime() - new Date(a.watched_at).getTime();
+  });
+
+  for (const item of sorted) {
+    const key = `${item.media_type}_${item.tmdb_id}`;
+    if (!map.has(key)) {
+      map.set(key, item);
+    }
+  }
+  
+  return Array.from(map.values()).sort((a, b) => {
+    return new Date(b.watched_at).getTime() - new Date(a.watched_at).getTime();
+  });
 }
 
 function setGuestHistory(list: HistoryItem[]) {
@@ -36,7 +68,20 @@ export const historyService = {
       return [];
     }
 
-    return data || [];
+    const items = data || [];
+    const deduplicated = deduplicateHistory(items);
+    
+    // Auto-clean duplicates in DB if found
+    if (deduplicated.length !== items.length) {
+      const keptIds = new Set(deduplicated.map(d => d.id));
+      const duplicateIds = items.filter(item => !keptIds.has(item.id)).map(item => item.id);
+      
+      if (duplicateIds.length > 0) {
+        supabase.from('watch_history').delete().in('id', duplicateIds).then();
+      }
+    }
+
+    return deduplicated;
   },
 
   async recordProgress(
@@ -66,14 +111,11 @@ export const historyService = {
 
     if (!userId) {
       const guestList = getGuestHistory();
-      // Remove old exact match to prepend updated one
-      const filtered = guestList.filter(m => {
-        if (mediaType === 'movie') return m.tmdb_id !== media.id;
-        return !(m.tmdb_id === media.id && m.season_number === seasonNumber && m.episode_number === episodeNumber);
-      });
+      // Remove any matching media.id AND mediaType
+      const filtered = guestList.filter(m => !(m.tmdb_id === media.id && m.media_type === mediaType));
       
       filtered.unshift({
-        id: `guest_${media.id}_${seasonNumber || 0}_${episodeNumber || 0}`,
+        id: `guest_${media.id}_${mediaType}`,
         user_id: 'guest',
         ...recordPayload
       } as HistoryItem);
@@ -83,34 +125,58 @@ export const historyService = {
       return;
     }
 
-    // Debounce database writes (save immediately if progress isn't continuously changing, otherwise throttle)
-    const timerKey = `${userId}_${media.id}_${mediaType}_${seasonNumber}_${episodeNumber}`;
+    // Debounce database writes
+    const timerKey = `${userId}_${media.id}_${mediaType}`;
     if (progressUpdateTimers[timerKey]) {
       clearTimeout(progressUpdateTimers[timerKey]);
     }
 
-    // Wrap in a promise so the caller doesn't have to await the debounce
     progressUpdateTimers[timerKey] = setTimeout(async () => {
-      // Upsert logic differs based on media type because of our unique indexes
-      const onConflict = mediaType === 'movie' 
-        ? 'user_id, tmdb_id, media_type' 
-        : 'user_id, tmdb_id, media_type, season_number, episode_number';
-
-      const { error } = await supabase
+      // Find existing record by mediaType and tmdbId
+      const { data: existingRecords, error: selectError } = await supabase
         .from('watch_history')
-        .upsert({
-          user_id: userId,
-          ...recordPayload
-        }, {
-          onConflict
-        });
+        .select('id')
+        .match({ user_id: userId, tmdb_id: media.id, media_type: mediaType })
+        .order('watched_at', { ascending: false });
 
-      if (error) {
-        console.error('Error recording history:', error.message);
-      } else {
-        window.dispatchEvent(new Event('history-updated'));
+      if (selectError) {
+        console.error('Error checking history existence:', selectError.message);
+        return;
       }
-    }, 2000); // Debounce by 2 seconds to prevent rapid updates
+
+      if (existingRecords && existingRecords.length > 0) {
+        // Update the most recent existing record
+        const { error: updateError } = await supabase
+          .from('watch_history')
+          .update(recordPayload)
+          .eq('id', existingRecords[0].id);
+
+        if (updateError) {
+          console.error('Error updating history:', updateError.message);
+        } else {
+          // If there were duplicates in DB, clean them up now
+          if (existingRecords.length > 1) {
+            const extraIds = existingRecords.slice(1).map(r => r.id);
+            await supabase.from('watch_history').delete().in('id', extraIds);
+          }
+          window.dispatchEvent(new Event('history-updated'));
+        }
+      } else {
+        // Insert new record
+        const { error: insertError } = await supabase
+          .from('watch_history')
+          .insert({
+            user_id: userId,
+            ...recordPayload
+          });
+
+        if (insertError) {
+          console.error('Error inserting history:', insertError.message);
+        } else {
+          window.dispatchEvent(new Event('history-updated'));
+        }
+      }
+    }, 2000);
   },
 
   async clearHistory(userId: string | undefined): Promise<void> {
@@ -158,10 +224,47 @@ export const historyService = {
         await supabase.from('watch_history').upsert(movies, { onConflict: 'user_id, tmdb_id, media_type' });
       }
 
-      // Merge TV
-      const tvs = toUpsert.filter(m => m.media_type === 'tv' && m.season_number != null && m.episode_number != null);
+      // Merge TV - because of the Supabase unique index we cannot blindly upsert on user_id, tmdb_id, media_type.
+      // So we insert/update manually to avoid creating duplicate records.
+      const tvs = deduplicateHistory(toUpsert.filter(m => m.media_type === 'tv') as HistoryItem[]);
       if (tvs.length > 0) {
-        await supabase.from('watch_history').upsert(tvs, { onConflict: 'user_id, tmdb_id, media_type, season_number, episode_number' });
+        for (const tv of tvs) {
+          const { data: existing } = await supabase
+            .from('watch_history')
+            .select('id')
+            .match({ user_id: userId, tmdb_id: tv.tmdb_id, media_type: 'tv' })
+            .limit(1)
+            .single();
+
+          if (existing) {
+            await supabase.from('watch_history').update({
+              title: tv.title,
+              year: tv.year,
+              poster_path: tv.poster_path,
+              season_number: tv.season_number,
+              episode_number: tv.episode_number,
+              episode_title: tv.episode_title,
+              progress: tv.progress,
+              duration: tv.duration,
+              watched_at: tv.watched_at
+            }).eq('id', existing.id);
+          } else {
+            await supabase.from('watch_history').insert({
+              user_id: userId,
+              tmdb_id: tv.tmdb_id,
+              media_type: 'tv',
+              title: tv.title,
+              year: tv.year,
+              poster_path: tv.poster_path,
+              season_number: tv.season_number,
+              episode_number: tv.episode_number,
+              episode_title: tv.episode_title,
+              progress: tv.progress,
+              duration: tv.duration,
+              watched_at: tv.watched_at
+            });
+          }
+        }
       }
 
       sessionStorage.removeItem(GUEST_HISTORY_KEY);
