@@ -263,6 +263,7 @@ export function WatchPage() {
               mediaType={isTv ? 'tv' : 'movie'}
               season={isTv ? activeSeason : undefined}
               episode={isTv ? activeEpisode : undefined}
+              onEpisodeEnd={advanceToNextEpisode}
             />
 
             {/* Next Episode / Series Complete controls */}

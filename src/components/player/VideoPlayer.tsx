@@ -98,25 +98,7 @@ export function VideoPlayer({ tmdbId, imdbId, title, onRetry, mediaType = 'movie
     setState('loaded');
   }, []);
 
-  // ── Future-proof: listen for postMessage-based episode-end signals ──
-  useEffect(() => {
-    if (!onEpisodeEnd || mediaType !== 'tv') return;
 
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        // Accept end signals from any provider origin
-        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-        if (data && (data.event === 'ended' || data.type === 'ended' || data.action === 'ended')) {
-          onEpisodeEnd();
-        }
-      } catch {
-        // Not a JSON message or not relevant — ignore
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [onEpisodeEnd, mediaType]);
 
   const handleIframeError = useCallback(() => {
     if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
@@ -139,6 +121,65 @@ export function VideoPlayer({ tmdbId, imdbId, title, onRetry, mediaType = 'movie
         ? getMovieProviderUrl(selectedProvider, { tmdbId, imdbId })
         : getTVProviderUrl(selectedProvider, { tmdbId, imdbId }, season || 1, episode || 1))
     : null;
+
+  // ── Robust: listen for postMessage-based episode-end signals ──
+  useEffect(() => {
+    if (!onEpisodeEnd || mediaType !== 'tv' || !selectedProvider?.supportsPlaybackEvents || !embedUrl) return;
+
+    const expectedOrigin = new URL(embedUrl).origin;
+
+    const handleMessage = (event: MessageEvent) => {
+      // Temporarily log all messages from the iframe for development
+      if (import.meta.env.DEV) {
+        console.log('[REX Player] postMessage received:', {
+          origin: event.origin,
+          data: event.data,
+          expectedOrigin
+        });
+      }
+
+      // Validate origin loosely (some providers send from subdomains)
+      if (!event.origin.includes(expectedOrigin.replace(/^https?:\/\//, ''))) {
+        return;
+      }
+
+      try {
+        let payload = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        if (!payload) return;
+
+        // Support nested payloads like { data: { currentTime, duration } }
+        if (payload.data && typeof payload.data === 'object' && !payload.event && !payload.type) {
+          payload = payload.data;
+        }
+
+        // 1. Explicit Completion Event
+        if (payload.event === 'ended' || payload.type === 'ended' || payload.action === 'ended' || payload.name === 'ended') {
+          if (import.meta.env.DEV) console.log('[REX Player] Explicit ended event detected');
+          onEpisodeEnd();
+          return;
+        }
+
+        // 2. Verified Time Heuristic
+        const currentTime = payload.currentTime ?? payload.time ?? payload.position;
+        const duration = payload.duration ?? payload.length;
+
+        if (typeof currentTime === 'number' && typeof duration === 'number' && duration > 0) {
+          const timeLeft = duration - currentTime;
+          const ratio = currentTime / duration;
+          
+          if (timeLeft <= 2 && ratio >= 0.98) {
+            if (import.meta.env.DEV) console.log('[REX Player] Time heuristic triggered next episode', { currentTime, duration, ratio });
+            onEpisodeEnd();
+          }
+        }
+      } catch {
+        // Not a JSON message or not relevant — ignore
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [onEpisodeEnd, mediaType, selectedProvider?.supportsPlaybackEvents, embedUrl]);
 
   const handleProviderChange = (val: string) => {
     fallbackCountRef.current = 0; // Reset on manual change
@@ -239,13 +280,14 @@ export function VideoPlayer({ tmdbId, imdbId, title, onRetry, mediaType = 'movie
           {/* ── Iframe ───────────────────────────────────── */}
           {embedUrl && (
             <iframe
+              key={embedUrl}
               ref={iframeRef}
               className={`player-iframe ${state === 'loaded' ? 'player-iframe--visible' : ''}`}
               src={embedUrl}
               title={title ? `${title} — Rex.io Video Player` : 'Rex.io Video Player'}
-              {...(!selectedProvider?.disableSandbox && {
+              {...(selectedProvider?.supportsSandbox ? {
                 sandbox: "allow-scripts allow-same-origin allow-presentation allow-forms"
-              })}
+              } : {})}
               allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
               allowFullScreen
               referrerPolicy="no-referrer"

@@ -13,8 +13,10 @@ export interface Provider {
   mediaType: MediaType;
   enabled: boolean;
   isDefault?: boolean;
-  hasAds?: boolean;
-  disableSandbox?: boolean;
+  hasAds: boolean;
+  supportsSandbox: boolean;
+  supportsPlaybackEvents?: boolean;
+  priority: number;
   buildUrl: (params: ProviderParams) => string;
 }
 
@@ -27,6 +29,9 @@ export const providers: Provider[] = [
     enabled: true,
     isDefault: true,
     hasAds: true,
+    supportsSandbox: true,
+    supportsPlaybackEvents: true,
+    priority: 1, // SET AS TOP PRIORITY
     buildUrl: ({ tmdbId }) => `https://cinesrc.st/embed/movie/${tmdbId}`,
   },
   {
@@ -34,6 +39,9 @@ export const providers: Provider[] = [
     name: 'VidSrc SBS',
     mediaType: 'movie',
     enabled: true,
+    hasAds: true,
+    supportsSandbox: true,
+    priority: 4,
     buildUrl: ({ tmdbId }) => `https://vidsrc.sbs/embed/movie/${tmdbId}`,
   },
   {
@@ -42,6 +50,8 @@ export const providers: Provider[] = [
     mediaType: 'movie',
     enabled: true,
     hasAds: true,
+    supportsSandbox: true,
+    priority: 5,
     buildUrl: ({ tmdbId }) => `https://vidcore.org/embed/movie/${tmdbId}`,
   },
   {
@@ -50,7 +60,8 @@ export const providers: Provider[] = [
     mediaType: 'movie',
     enabled: true,
     hasAds: true,
-    disableSandbox: true,
+    supportsSandbox: false,
+    priority: 6,
     buildUrl: ({ tmdbId }) => `https://embed.filmu.in/movie/${tmdbId}`,
   },
 
@@ -62,6 +73,9 @@ export const providers: Provider[] = [
     enabled: true,
     isDefault: true,
     hasAds: true,
+    supportsSandbox: true,
+    supportsPlaybackEvents: true,
+    priority: 1, // SET AS TOP PRIORITY
     buildUrl: ({ tmdbId, season, episode }) => `https://cinesrc.st/embed/tv/${tmdbId}?s=${season}&e=${episode}`,
   },
   {
@@ -69,6 +83,9 @@ export const providers: Provider[] = [
     name: 'VidSrc SBS',
     mediaType: 'tv',
     enabled: true,
+    hasAds: true,
+    supportsSandbox: true,
+    priority: 4,
     buildUrl: ({ tmdbId, season, episode }) => `https://vidsrc.sbs/embed/tv/${tmdbId}/${season}/${episode}`,
   },
   {
@@ -77,6 +94,8 @@ export const providers: Provider[] = [
     mediaType: 'tv',
     enabled: true,
     hasAds: true,
+    supportsSandbox: true,
+    priority: 5,
     buildUrl: ({ tmdbId, season, episode }) => `https://vidcore.org/embed/tv/${tmdbId}/${season}/${episode}`,
   },
   {
@@ -85,7 +104,8 @@ export const providers: Provider[] = [
     mediaType: 'tv',
     enabled: true,
     hasAds: true,
-    disableSandbox: true,
+    supportsSandbox: false,
+    priority: 6,
     buildUrl: ({ tmdbId, season, episode }) => `https://embed.filmu.in/tv/${tmdbId}/${season}/${episode}`,
   },
   
@@ -96,6 +116,8 @@ export const providers: Provider[] = [
     mediaType: 'movie',
     enabled: !!(import.meta.env.VITE_NEXSTREAM_BASE_URL && import.meta.env.VITE_NEXSTREAM_API_KEY),
     hasAds: false,
+    supportsSandbox: true,
+    priority: 2,
     buildUrl: ({ tmdbId }) => {
       const baseUrl = import.meta.env.VITE_NEXSTREAM_BASE_URL?.replace(/\/$/, '');
       const apiKey = import.meta.env.VITE_NEXSTREAM_API_KEY;
@@ -109,6 +131,8 @@ export const providers: Provider[] = [
     mediaType: 'tv',
     enabled: !!(import.meta.env.VITE_NEXSTREAM_BASE_URL && import.meta.env.VITE_NEXSTREAM_API_KEY),
     hasAds: false,
+    supportsSandbox: true,
+    priority: 2,
     buildUrl: ({ tmdbId, season, episode }) => {
       const baseUrl = import.meta.env.VITE_NEXSTREAM_BASE_URL?.replace(/\/$/, '');
       const apiKey = import.meta.env.VITE_NEXSTREAM_API_KEY;
@@ -124,6 +148,8 @@ export const providers: Provider[] = [
     mediaType: 'movie',
     enabled: true,
     hasAds: false,
+    supportsSandbox: true,
+    priority: 3,
     buildUrl: ({ tmdbId, imdbId }) => {
       const id = imdbId || `tmdb-${tmdbId}`;
       return `https://embedmaster.link/movie/${id}?skin=onyx&welcome_page=off`;
@@ -135,6 +161,8 @@ export const providers: Provider[] = [
     mediaType: 'tv',
     enabled: true,
     hasAds: false,
+    supportsSandbox: true,
+    priority: 3,
     buildUrl: ({ tmdbId, season, episode, imdbId }) => {
       const id = imdbId || `tmdb-${tmdbId}`;
       return `https://embedmaster.link/tv/${id}/${season}/${episode}?skin=onyx&welcome_page=off`;
@@ -143,10 +171,12 @@ export const providers: Provider[] = [
 ];
 
 /**
- * Gets all enabled providers for a specific media type.
+ * Gets all enabled providers for a specific media type, sorted by priority.
  */
 export function getEnabledProviders(mediaType: MediaType): Provider[] {
-  return providers.filter(p => p.enabled && p.mediaType === mediaType);
+  return providers
+    .filter(p => p.enabled && p.mediaType === mediaType)
+    .sort((a, b) => a.priority - b.priority);
 }
 
 /**
@@ -158,6 +188,7 @@ export function getProviderById(id: string): Provider | undefined {
 
 /**
  * Gets the default/fallback provider for a media type.
+ * Since providers are sorted by priority, this returns the highest priority provider.
  */
 export function getDefaultProvider(mediaType: MediaType): Provider | undefined {
   const enabled = getEnabledProviders(mediaType);
@@ -183,12 +214,10 @@ export function getMovieProviderUrl(provider: Provider, media: ProviderMedia): s
       return null;
     }
 
-    // Basic sanity check to ensure it looks like a URL
     new URL(url);
-
     return url;
   } catch {
-    return null; // Reject malformed URLs safely
+    return null;
   }
 }
 
@@ -216,7 +245,6 @@ export function getTVProviderUrl(
     }
 
     new URL(url);
-
     return url;
   } catch {
     return null;
