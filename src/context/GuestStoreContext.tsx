@@ -26,6 +26,15 @@ export interface GuestStoreContextValue {
     season?: number,
     episode?: number
   ) => void;
+  saveProvider: (
+    tmdbId: number,
+    mediaType: 'movie' | 'tv',
+    providerId: string,
+    season?: number,
+    episode?: number
+  ) => void;
+  removeHistoryItem: (tmdbId: number, mediaType: 'movie' | 'tv') => void;
+  removeHistoryItems: (items: { tmdbId: number, mediaType: 'movie' | 'tv' }[]) => void;
   clearHistory: () => void;
 }
 
@@ -119,6 +128,27 @@ export function GuestStoreProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const saveProvider = useCallback(
+    (
+      tmdbId: number,
+      mediaType: 'movie' | 'tv',
+      providerId: string,
+      season?: number,
+      episode?: number
+    ) => {
+      historyService.saveProvider(tmdbId, mediaType, providerId, season, episode);
+    },
+    []
+  );
+
+  const removeHistoryItem = useCallback((tmdbId: number, mediaType: 'movie' | 'tv') => {
+    historyService.removeHistoryItem(tmdbId, mediaType);
+  }, []);
+
+  const removeHistoryItems = useCallback((items: { tmdbId: number, mediaType: 'movie' | 'tv' }[]) => {
+    historyService.removeHistoryItems(items);
+  }, []);
+
   const clearHistoryAction = useCallback(() => {
     historyService.clearHistory();
   }, []);
@@ -133,6 +163,9 @@ export function GuestStoreProvider({ children }: { children: ReactNode }) {
     history,
     recordProgress,
     addOrUpdateHistory,
+    saveProvider,
+    removeHistoryItem,
+    removeHistoryItems,
     clearHistory: clearHistoryAction,
   };
 

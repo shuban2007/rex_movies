@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { getEnabledProviders, getDefaultProvider, getMovieProviderUrl, getTVProviderUrl } from '../../services/playback/provider';
+import { useGuestStore } from '../../hooks/useGuestStore';
 import { CustomSelect } from '../ui/CustomSelect';
 import './VideoPlayer.css';
 
@@ -34,19 +35,39 @@ export function VideoPlayer({ tmdbId, imdbId, title, onRetry, mediaType = 'movie
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const loadTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const fallbackCountRef = useRef(0);
+  const lastEvaluatedTmdbId = useRef<number | null>(null);
+
+  const { history, saveProvider } = useGuestStore();
 
   const availableProviders = getEnabledProviders(mediaType);
 
-  // Auto-select provider from localStorage, or default if not available
+  // Auto-select provider from history, fallback to localStorage, or default
   useEffect(() => {
+    const titleChanged = tmdbId !== lastEvaluatedTmdbId.current;
+
     if (availableProviders.length > 0) {
-      if (!selectedProviderId || !availableProviders.find(p => p.id === selectedProviderId)) {
-        const savedProviderId = localStorage.getItem('rex_preferred_provider');
-        const savedProvider = availableProviders.find(p => p.id === savedProviderId);
+      if (titleChanged || !selectedProviderId || !availableProviders.find(p => p.id === selectedProviderId)) {
+        if (tmdbId) {
+          lastEvaluatedTmdbId.current = tmdbId;
+        }
         
-        if (savedProvider) {
+        let targetProviderId = '';
+        if (tmdbId) {
+          const historyItem = history.find(h => h.tmdbId === tmdbId && h.mediaType === mediaType);
+          if (historyItem?.providerId) {
+            targetProviderId = historyItem.providerId;
+          }
+        }
+        
+        if (!targetProviderId || !availableProviders.find(p => p.id === targetProviderId)) {
+          targetProviderId = localStorage.getItem('rex_preferred_provider') || '';
+        }
+
+        const validProvider = availableProviders.find(p => p.id === targetProviderId);
+        
+        if (validProvider) {
           // eslint-disable-next-line react/set-state-in-effect
-          setSelectedProviderId(savedProvider.id);
+          setSelectedProviderId(validProvider.id);
         } else {
           const defaultProvider = getDefaultProvider(mediaType);
           // eslint-disable-next-line react/set-state-in-effect
@@ -57,7 +78,7 @@ export function VideoPlayer({ tmdbId, imdbId, title, onRetry, mediaType = 'movie
       // eslint-disable-next-line react/set-state-in-effect
       setSelectedProviderId('');
     }
-  }, [mediaType, availableProviders, selectedProviderId]);
+  }, [mediaType, availableProviders, selectedProviderId, tmdbId, history]);
 
   // When the ID or provider changes, transition states
   useEffect(() => {
@@ -96,7 +117,11 @@ export function VideoPlayer({ tmdbId, imdbId, title, onRetry, mediaType = 'movie
   const handleIframeLoad = useCallback(() => {
     if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
     setState('loaded');
-  }, []);
+    
+    if (tmdbId && selectedProviderId) {
+      saveProvider(tmdbId, mediaType, selectedProviderId, season, episode);
+    }
+  }, [tmdbId, mediaType, selectedProviderId, season, episode, saveProvider]);
 
 
 

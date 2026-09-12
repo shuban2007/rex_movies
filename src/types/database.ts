@@ -9,4 +9,5 @@ export interface HistoryItem {
   watchedAt: number;
   season?: number;
   episode?: number;
+  providerId?: string;
 }

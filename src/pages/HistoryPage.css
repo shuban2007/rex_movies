@@ -22,6 +22,106 @@
   border-color: rgba(229, 9, 20, 0.3);
 }
 
+.history-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.edit-history-btn, .select-all-btn, .clear-selection-btn, .cancel-edit-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(240, 240, 245, 0.8);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-history-btn:hover, .select-all-btn:hover, .clear-selection-btn:hover, .cancel-edit-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.delete-selected-btn {
+  background: transparent;
+  border: 1px solid rgba(229, 9, 20, 0.4);
+  color: #e50914;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.delete-selected-btn:hover:not(:disabled) {
+  background: rgba(229, 9, 20, 0.1);
+  border-color: #e50914;
+}
+
+.delete-selected-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.history-item-wrapper {
+  position: relative;
+  transition: transform 0.2s ease;
+}
+
+.history-item-wrapper.editing {
+  cursor: pointer;
+}
+
+.history-item-wrapper.editing .movie-card {
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.history-item-wrapper.selected .movie-card {
+  opacity: 1;
+  outline: 2px solid #e50914;
+  outline-offset: -2px;
+  border-radius: 12px;
+}
+
+.history-edit-overlay {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
+}
+
+.history-checkbox {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.history-item-wrapper.selected .history-checkbox {
+  background: #e50914;
+  border-color: #e50914;
+}
+
+.history-item-wrapper.selected .history-checkbox::after {
+  content: '✓';
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+}
+
 @media (max-width: 768px) {
   .history-header {
     flex-direction: column;

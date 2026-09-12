@@ -26,6 +26,7 @@ function migrateFromLegacy(): void {
           watchedAt: item.watched_at ? new Date(item.watched_at).getTime() : (item.watchedAt || Date.now()),
           season: item.season_number ?? item.season ?? undefined,
           episode: item.episode_number ?? item.episode ?? undefined,
+          providerId: item.providerId ?? undefined,
         }))
         .filter((item) => !isNaN(item.tmdbId) && (item.mediaType === 'movie' || item.mediaType === 'tv'));
 
@@ -132,6 +133,7 @@ export const historyService = {
     }
 
     const list = readHistory();
+    const existing = list.find((item) => item.tmdbId === tmdbId && item.mediaType === mediaType);
     const filtered = list.filter((item) => !(item.tmdbId === tmdbId && item.mediaType === mediaType));
 
     filtered.unshift({
@@ -140,6 +142,7 @@ export const historyService = {
       watchedAt: Date.now(),
       season,
       episode,
+      ...(existing?.providerId ? { providerId: existing.providerId } : {})
     });
 
     writeHistory(filtered);
@@ -153,6 +156,51 @@ export const historyService = {
     
     if (filtered.length !== list.length) {
       writeHistory(filtered);
+      window.dispatchEvent(new Event('history-updated'));
+    }
+  },
+
+  removeHistoryItems(itemsToRemove: { tmdbId: number, mediaType: 'movie' | 'tv' }[]): void {
+    if (itemsToRemove.length === 0) return;
+    
+    migrateFromLegacy();
+    const list = readHistory();
+    
+    const filtered = list.filter(item => 
+      !itemsToRemove.some(rem => rem.tmdbId === item.tmdbId && rem.mediaType === item.mediaType)
+    );
+    
+    if (filtered.length !== list.length) {
+      writeHistory(filtered);
+      window.dispatchEvent(new Event('history-updated'));
+    }
+  },
+
+  saveProvider(
+    tmdbId: number,
+    mediaType: 'movie' | 'tv',
+    providerId: string,
+    season?: number,
+    episode?: number
+  ): void {
+    migrateFromLegacy();
+    const list = readHistory();
+    const index = list.findIndex((item) => item.tmdbId === tmdbId && item.mediaType === mediaType);
+    
+    if (index !== -1) {
+      list[index] = { ...list[index], providerId };
+      writeHistory(list);
+      window.dispatchEvent(new Event('history-updated'));
+    } else {
+      list.unshift({
+        tmdbId,
+        mediaType,
+        watchedAt: Date.now(),
+        season,
+        episode,
+        providerId
+      });
+      writeHistory(list);
       window.dispatchEvent(new Event('history-updated'));
     }
   },

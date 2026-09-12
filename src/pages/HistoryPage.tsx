@@ -7,9 +7,11 @@ import './HistoryPage.css';
 import './WatchlistPage.css'; // Reusing collection grid styles
 
 export function HistoryPage() {
-  const { history, clearHistory } = useGuestStore();
+  const { history, clearHistory, removeHistoryItems } = useGuestStore();
   const [items, setItems] = useState<MediaSearchResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let mounted = true;
@@ -70,9 +72,47 @@ export function HistoryPage() {
   }, [history]);
 
   const handleClear = () => {
-    if (window.confirm('Are you sure you want to clear your watch history?')) {
+    if (window.confirm('Are you sure you want to clear your entire watch history?')) {
       clearHistory();
+      setIsEditing(false);
+      setSelectedItems(new Set());
     }
+  };
+
+  const toggleSelection = (tmdbId: number, mediaType: string) => {
+    const key = `${mediaType}_${tmdbId}`;
+    const next = new Set(selectedItems);
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    setSelectedItems(next);
+  };
+
+  const handleSelectAll = () => {
+    const next = new Set<string>();
+    items.forEach(movie => {
+      next.add(`${movie.mediaType}_${movie.id}`);
+    });
+    setSelectedItems(next);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedItems(new Set());
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedItems.size === 0) return;
+    
+    const itemsToRemove = Array.from(selectedItems).map(key => {
+      const [mediaType, idStr] = key.split('_');
+      return { mediaType: mediaType as 'movie' | 'tv', tmdbId: Number(idStr) };
+    });
+    
+    removeHistoryItems(itemsToRemove);
+    setSelectedItems(new Set());
+    setIsEditing(false);
   };
 
   return (
@@ -84,9 +124,33 @@ export function HistoryPage() {
         </div>
         
         {history.length > 0 && (
-          <button className="clear-history-btn" onClick={handleClear}>
-            Clear History
-          </button>
+          <div className="history-actions">
+            {!isEditing ? (
+              <>
+                <button className="edit-history-btn" onClick={() => setIsEditing(true)}>
+                  Edit History
+                </button>
+                <button className="clear-history-btn" onClick={handleClear}>
+                  Clear All
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="select-all-btn" onClick={handleSelectAll}>
+                  Select All
+                </button>
+                <button className="clear-selection-btn" onClick={handleClearSelection} disabled={selectedItems.size === 0}>
+                  Clear Selection
+                </button>
+                <button className="delete-selected-btn" onClick={handleDeleteSelected} disabled={selectedItems.size === 0}>
+                  Delete Selected ({selectedItems.size})
+                </button>
+                <button className="cancel-edit-btn" onClick={() => { setIsEditing(false); setSelectedItems(new Set()); }}>
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
         )}
       </div>
 
@@ -106,12 +170,29 @@ export function HistoryPage() {
           </div>
         ) : (
           <div className="collection-grid">
-            {items.map((movie) => (
-              <MovieCard 
-                key={`${movie.mediaType}_${movie.id}`} 
-                movie={movie} 
-              />
-            ))}
+            {items.map((movie) => {
+              const isSelected = selectedItems.has(`${movie.mediaType}_${movie.id}`);
+              return (
+                <div 
+                  key={`${movie.mediaType}_${movie.id}`} 
+                  className={`history-item-wrapper ${isEditing ? 'editing' : ''} ${isSelected ? 'selected' : ''}`}
+                  onClickCapture={(e) => {
+                    if (isEditing) {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      toggleSelection(movie.id, movie.mediaType || 'movie');
+                    }
+                  }}
+                >
+                  <MovieCard movie={movie} />
+                  {isEditing && (
+                    <div className="history-edit-overlay">
+                      <div className="history-checkbox"></div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
