@@ -1,37 +1,100 @@
-import { supabase } from '../lib/supabase';
 import type { HistoryItem } from '../types/database';
 import type { MediaSearchResult, TvSeriesDetails, MovieSearchResult } from './tmdb';
 
-const GUEST_HISTORY_KEY = 'guest_history';
+const STORAGE_KEY = 'rexio_watch_history';
+const LEGACY_SESSION_KEY = 'guest_history';
 
-function getGuestHistory(): HistoryItem[] {
+// ── Safe localStorage helpers ──────────────────────────────
+
+function readHistory(): HistoryItem[] {
   try {
-    const data = sessionStorage.getItem(GUEST_HISTORY_KEY);
-    const parsed = data ? JSON.parse(data) : [];
-    
-    // Deduplicate on load
-    const deduplicated = deduplicateHistory(parsed);
-    if (deduplicated.length !== parsed.length) {
-      setGuestHistory(deduplicated);
-    }
-    
-    return deduplicated;
-  } catch (err) {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (!data) return [];
+    const parsed = JSON.parse(data);
+    if (!Array.isArray(parsed)) return [];
+    // Filter out malformed records, sort newest first
+    return parsed
+      .filter(
+        (item: any) =>
+          item &&
+          typeof item.tmdb_id === 'number' &&
+          typeof item.media_type === 'string' &&
+          typeof item.title === 'string' &&
+          typeof item.watched_at === 'string'
+      )
+      .sort(
+        (a: HistoryItem, b: HistoryItem) =>
+          new Date(b.watched_at).getTime() - new Date(a.watched_at).getTime()
+      );
+  } catch {
     return [];
   }
 }
 
+function writeHistory(list: HistoryItem[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  } catch {
+    // Quota exceeded or storage unavailable — silently ignore
+  }
+}
+
+// ── One-time migration from sessionStorage ─────────────────
+
+let migrationDone = false;
+
+function migrateFromSessionStorage(): void {
+  if (migrationDone) return;
+  migrationDone = true;
+
+  try {
+    const existing = localStorage.getItem(STORAGE_KEY);
+    if (existing) return; // Already has localStorage data, skip migration
+
+    const sessionData = sessionStorage.getItem(LEGACY_SESSION_KEY);
+    if (!sessionData) return;
+
+    const parsed = JSON.parse(sessionData);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      // Deduplicate during migration: one record per tmdb_id + media_type
+      const deduped = deduplicateHistory(
+        parsed.map((item: any) => ({
+          id: item.id || `migrated_${item.tmdb_id}_${item.media_type || 'movie'}`,
+          tmdb_id: item.tmdb_id,
+          media_type: item.media_type || 'movie',
+          title: item.title || '',
+          year: item.year || null,
+          poster_path: item.poster_path || null,
+          backdrop_path: item.backdrop_path || item.poster_path || null,
+          season_number: item.season_number ?? null,
+          episode_number: item.episode_number ?? null,
+          episode_title: item.episode_title ?? null,
+          progress_seconds: item.progress ?? item.progress_seconds ?? null,
+          watched_at: item.watched_at || new Date().toISOString(),
+        }))
+      );
+      writeHistory(deduped);
+    }
+
+    sessionStorage.removeItem(LEGACY_SESSION_KEY);
+  } catch {
+    // Migration failed — skip silently
+  }
+}
+
+// ── Deduplication helper ───────────────────────────────────
+
 /**
- * Deduplicates a list of history items, keeping only the most recently 
- * updated record for each unique mediaType + tmdbId combination.
+ * Keeps only the most recently watched record per tmdb_id + media_type.
+ * Returns sorted by watched_at DESC.
  */
 function deduplicateHistory(list: HistoryItem[]): HistoryItem[] {
   const map = new Map<string, HistoryItem>();
-  
-  // Assuming list is sorted newest first, but let's sort to be safe
-  const sorted = [...list].sort((a, b) => {
-    return new Date(b.watched_at).getTime() - new Date(a.watched_at).getTime();
-  });
+
+  // Sort newest first so the first occurrence per key is the latest
+  const sorted = [...list].sort(
+    (a, b) => new Date(b.watched_at).getTime() - new Date(a.watched_at).getTime()
+  );
 
   for (const item of sorted) {
     const key = `${item.media_type}_${item.tmdb_id}`;
@@ -39,238 +102,159 @@ function deduplicateHistory(list: HistoryItem[]): HistoryItem[] {
       map.set(key, item);
     }
   }
-  
-  return Array.from(map.values()).sort((a, b) => {
-    return new Date(b.watched_at).getTime() - new Date(a.watched_at).getTime();
-  });
+
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.watched_at).getTime() - new Date(a.watched_at).getTime()
+  );
 }
 
-function setGuestHistory(list: HistoryItem[]) {
-  sessionStorage.setItem(GUEST_HISTORY_KEY, JSON.stringify(list));
-}
+// ── Debounce for progress updates ──────────────────────────
 
-// Simple debounce map to prevent spamming the database
-const progressUpdateTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+const progressTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+
+// ── Service ────────────────────────────────────────────────
 
 export const historyService = {
-  async getHistory(userId: string | undefined): Promise<HistoryItem[]> {
-    if (!userId) {
-      return getGuestHistory();
+  /**
+   * Get full watch history, sorted by watched_at DESC.
+   * One record per tmdb_id + media_type.
+   */
+  getHistory(): HistoryItem[] {
+    migrateFromSessionStorage();
+    const list = readHistory();
+    // Ensure deduplication on every read (safety net)
+    const deduped = deduplicateHistory(list);
+    if (deduped.length !== list.length) {
+      writeHistory(deduped);
     }
-
-    const { data, error } = await supabase
-      .from('watch_history')
-      .select('*')
-      .order('watched_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching history:', error.message);
-      return [];
-    }
-
-    const items = data || [];
-    const deduplicated = deduplicateHistory(items);
-    
-    // Auto-clean duplicates in DB if found
-    if (deduplicated.length !== items.length) {
-      const keptIds = new Set(deduplicated.map(d => d.id));
-      const duplicateIds = items.filter(item => !keptIds.has(item.id)).map(item => item.id);
-      
-      if (duplicateIds.length > 0) {
-        supabase.from('watch_history').delete().in('id', duplicateIds).then();
-      }
-    }
-
-    return deduplicated;
+    return deduped;
   },
 
-  async recordProgress(
+  /**
+   * Record watch progress. Enforces ONE record per tmdb_id + media_type.
+   * For TV: updates the existing record with latest season/episode info.
+   * Debounced to avoid excessive writes (2s delay).
+   */
+  recordProgress(
     media: MediaSearchResult | MovieSearchResult | TvSeriesDetails,
     mediaType: 'movie' | 'tv',
-    userId: string | undefined,
     seasonNumber?: number,
     episodeNumber?: number,
     episodeTitle?: string,
-    progress?: number,
-    duration?: number
-  ): Promise<void> {
-    
-    const recordPayload = {
+    progressSeconds?: number
+  ): void {
+    const timerKey = `${media.id}_${mediaType}`;
+
+    if (progressTimers[timerKey]) {
+      clearTimeout(progressTimers[timerKey]);
+    }
+
+    progressTimers[timerKey] = setTimeout(() => {
+      migrateFromSessionStorage();
+
+      const list = readHistory();
+      const key = `${mediaType}_${media.id}`;
+
+      // Remove existing record for this media (will be replaced)
+      const filtered = list.filter(
+        item => !(item.tmdb_id === media.id && item.media_type === mediaType)
+      );
+
+      // Create updated record
+      const record: HistoryItem = {
+        id: key,
+        tmdb_id: media.id,
+        media_type: mediaType,
+        title: media.title,
+        year: media.year,
+        poster_path: media.posterPath || (media as any).backdropPath || null,
+        backdrop_path: media.backdropPath || null,
+        season_number: seasonNumber ?? null,
+        episode_number: episodeNumber ?? null,
+        episode_title: episodeTitle ?? null,
+        progress_seconds: progressSeconds ?? null,
+        watched_at: new Date().toISOString(),
+      };
+
+      // Insert at the top (most recent)
+      filtered.unshift(record);
+      writeHistory(filtered);
+      window.dispatchEvent(new Event('history-updated'));
+
+      delete progressTimers[timerKey];
+    }, 2000);
+  },
+
+  /**
+   * Immediately record/update history (no debounce).
+   * Used for explicit actions like episode advancement.
+   */
+  addOrUpdateHistory(
+    media: MediaSearchResult | MovieSearchResult | TvSeriesDetails,
+    mediaType: 'movie' | 'tv',
+    seasonNumber?: number,
+    episodeNumber?: number,
+    episodeTitle?: string,
+    progressSeconds?: number
+  ): void {
+    migrateFromSessionStorage();
+
+    // Cancel any pending debounced write for this media
+    const timerKey = `${media.id}_${mediaType}`;
+    if (progressTimers[timerKey]) {
+      clearTimeout(progressTimers[timerKey]);
+      delete progressTimers[timerKey];
+    }
+
+    const list = readHistory();
+
+    // Remove existing record
+    const filtered = list.filter(
+      item => !(item.tmdb_id === media.id && item.media_type === mediaType)
+    );
+
+    const record: HistoryItem = {
+      id: `${mediaType}_${media.id}`,
       tmdb_id: media.id,
       media_type: mediaType,
       title: media.title,
       year: media.year,
-      poster_path: media.posterPath || (media as any).backdropPath,
-      season_number: seasonNumber || null,
-      episode_number: episodeNumber || null,
-      episode_title: episodeTitle || null,
-      progress: progress || null,
-      duration: duration || null,
-      watched_at: new Date().toISOString()
+      poster_path: media.posterPath || (media as any).backdropPath || null,
+      backdrop_path: media.backdropPath || null,
+      season_number: seasonNumber ?? null,
+      episode_number: episodeNumber ?? null,
+      episode_title: episodeTitle ?? null,
+      progress_seconds: progressSeconds ?? null,
+      watched_at: new Date().toISOString(),
     };
 
-    if (!userId) {
-      const guestList = getGuestHistory();
-      // Remove any matching media.id AND mediaType
-      const filtered = guestList.filter(m => !(m.tmdb_id === media.id && m.media_type === mediaType));
-      
-      filtered.unshift({
-        id: `guest_${media.id}_${mediaType}`,
-        user_id: 'guest',
-        ...recordPayload
-      } as HistoryItem);
-      
-      setGuestHistory(filtered);
-      window.dispatchEvent(new Event('history-updated'));
-      return;
-    }
-
-    // Debounce database writes
-    const timerKey = `${userId}_${media.id}_${mediaType}`;
-    if (progressUpdateTimers[timerKey]) {
-      clearTimeout(progressUpdateTimers[timerKey]);
-    }
-
-    progressUpdateTimers[timerKey] = setTimeout(async () => {
-      // Find existing record by mediaType and tmdbId
-      const { data: existingRecords, error: selectError } = await supabase
-        .from('watch_history')
-        .select('id')
-        .match({ user_id: userId, tmdb_id: media.id, media_type: mediaType })
-        .order('watched_at', { ascending: false });
-
-      if (selectError) {
-        console.error('Error checking history existence:', selectError.message);
-        return;
-      }
-
-      if (existingRecords && existingRecords.length > 0) {
-        // Update the most recent existing record
-        const { error: updateError } = await supabase
-          .from('watch_history')
-          .update(recordPayload)
-          .eq('id', existingRecords[0].id);
-
-        if (updateError) {
-          console.error('Error updating history:', updateError.message);
-        } else {
-          // If there were duplicates in DB, clean them up now
-          if (existingRecords.length > 1) {
-            const extraIds = existingRecords.slice(1).map(r => r.id);
-            await supabase.from('watch_history').delete().in('id', extraIds);
-          }
-          window.dispatchEvent(new Event('history-updated'));
-        }
-      } else {
-        // Insert new record
-        const { error: insertError } = await supabase
-          .from('watch_history')
-          .insert({
-            user_id: userId,
-            ...recordPayload
-          });
-
-        if (insertError) {
-          console.error('Error inserting history:', insertError.message);
-        } else {
-          window.dispatchEvent(new Event('history-updated'));
-        }
-      }
-    }, 2000);
+    filtered.unshift(record);
+    writeHistory(filtered);
+    window.dispatchEvent(new Event('history-updated'));
   },
 
-  async clearHistory(userId: string | undefined): Promise<void> {
-    if (!userId) {
-      sessionStorage.removeItem(GUEST_HISTORY_KEY);
-      window.dispatchEvent(new Event('history-updated'));
-      return;
-    }
-
-    const { error } = await supabase
-      .from('watch_history')
-      .delete()
-      .match({ user_id: userId });
-
-    if (error) {
-      console.error('Error clearing history:', error.message);
-    } else {
-      window.dispatchEvent(new Event('history-updated'));
-    }
+  /**
+   * Remove a single history item by tmdb_id + media_type.
+   */
+  removeHistoryItem(tmdbId: number, mediaType: string = 'movie'): void {
+    const list = readHistory();
+    const filtered = list.filter(
+      item => !(item.tmdb_id === tmdbId && item.media_type === mediaType)
+    );
+    writeHistory(filtered);
+    window.dispatchEvent(new Event('history-updated'));
   },
 
-  async mergeGuestHistory(userId: string): Promise<void> {
-    const guestList = getGuestHistory();
-    if (guestList.length === 0) return;
-
-    try {
-      const toUpsert = guestList.map(m => ({
-        user_id: userId,
-        tmdb_id: m.tmdb_id,
-        media_type: m.media_type || 'movie',
-        title: m.title,
-        year: m.year,
-        poster_path: m.poster_path,
-        season_number: m.season_number,
-        episode_number: m.episode_number,
-        episode_title: m.episode_title,
-        progress: m.progress,
-        duration: m.duration,
-        watched_at: m.watched_at
-      }));
-
-      // Merge movies
-      const movies = toUpsert.filter(m => m.media_type === 'movie');
-      if (movies.length > 0) {
-        await supabase.from('watch_history').upsert(movies, { onConflict: 'user_id, tmdb_id, media_type' });
-      }
-
-      // Merge TV - because of the Supabase unique index we cannot blindly upsert on user_id, tmdb_id, media_type.
-      // So we insert/update manually to avoid creating duplicate records.
-      const tvs = deduplicateHistory(toUpsert.filter(m => m.media_type === 'tv') as HistoryItem[]);
-      if (tvs.length > 0) {
-        for (const tv of tvs) {
-          const { data: existing } = await supabase
-            .from('watch_history')
-            .select('id')
-            .match({ user_id: userId, tmdb_id: tv.tmdb_id, media_type: 'tv' })
-            .limit(1)
-            .single();
-
-          if (existing) {
-            await supabase.from('watch_history').update({
-              title: tv.title,
-              year: tv.year,
-              poster_path: tv.poster_path,
-              season_number: tv.season_number,
-              episode_number: tv.episode_number,
-              episode_title: tv.episode_title,
-              progress: tv.progress,
-              duration: tv.duration,
-              watched_at: tv.watched_at
-            }).eq('id', existing.id);
-          } else {
-            await supabase.from('watch_history').insert({
-              user_id: userId,
-              tmdb_id: tv.tmdb_id,
-              media_type: 'tv',
-              title: tv.title,
-              year: tv.year,
-              poster_path: tv.poster_path,
-              season_number: tv.season_number,
-              episode_number: tv.episode_number,
-              episode_title: tv.episode_title,
-              progress: tv.progress,
-              duration: tv.duration,
-              watched_at: tv.watched_at
-            });
-          }
-        }
-      }
-
-      sessionStorage.removeItem(GUEST_HISTORY_KEY);
-      window.dispatchEvent(new Event('history-updated'));
-    } catch (err) {
-      console.error('Failed to merge guest history:', err);
+  /**
+   * Clear all history.
+   */
+  clearHistory(): void {
+    writeHistory([]);
+    // Cancel all pending debounced writes
+    for (const key of Object.keys(progressTimers)) {
+      clearTimeout(progressTimers[key]);
+      delete progressTimers[key];
     }
-  }
+    window.dispatchEvent(new Event('history-updated'));
+  },
 };

@@ -2,8 +2,7 @@ import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import type { MovieSearchResult } from '../../services/tmdb';
 import { getImageUrl } from '../../utils/imageUrl';
-import { watchlistService } from '../../services/watchlist';
-import { useAuth } from '../../hooks/useAuth';
+import { useGuestStore } from '../../context/GuestStoreContext';
 import './HeroMovie.css';
 
 interface HeroMovieProps {
@@ -12,31 +11,19 @@ interface HeroMovieProps {
 
 export function HeroMovie({ movie }: HeroMovieProps) {
   const [inWatchlist, setInWatchlist] = useState(false);
-  const { user, signInWithGoogle } = useAuth();
+  const { isInWatchlist, addToWatchlist, removeFromWatchlist } = useGuestStore();
 
   useEffect(() => {
-    setInWatchlist(watchlistService.isInWatchlistSync(movie.id));
-    
-    const handleWatchlistUpdate = () => {
-      setInWatchlist(watchlistService.isInWatchlistSync(movie.id));
-    };
-    
-    window.addEventListener('watchlist-updated', handleWatchlistUpdate);
-    return () => window.removeEventListener('watchlist-updated', handleWatchlistUpdate);
-  }, [movie.id, user]);
+    setInWatchlist(isInWatchlist(movie.id, 'movie'));
+  }, [movie.id, isInWatchlist]);
 
-  const handleWatchlistClick = async (e: React.MouseEvent) => {
+  const handleWatchlistClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
-    if (!user) {
-      signInWithGoogle();
-      return;
-    }
 
     if (inWatchlist) {
-      await watchlistService.removeMedia(movie.id, user.id);
+      removeFromWatchlist(movie.id, 'movie');
     } else {
-      await watchlistService.addMedia(movie, 'movie', user.id);
+      addToWatchlist(movie, 'movie');
     }
   };
 

@@ -1,44 +1,10 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { watchlistService } from '../services/watchlist';
-import type { WatchlistItem } from '../types/database';
+import { useGuestStore } from '../context/GuestStoreContext';
 import { MovieCard } from '../components/movies/MovieCard';
-import { useAuth } from '../hooks/useAuth';
 import './WatchlistPage.css';
 
 export function WatchlistPage() {
-  const [movies, setMovies] = useState<WatchlistItem[]>([]);
-  const { user, loading: authLoading } = useAuth();
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadWatchlist() {
-      setLoading(true);
-      const data = await watchlistService.getWatchlist(user?.id);
-      if (mounted) {
-        setMovies(data);
-        setLoading(false);
-      }
-    }
-
-    if (!authLoading) {
-      loadWatchlist();
-    }
-
-    const handleUpdate = () => {
-      loadWatchlist();
-    };
-
-    window.addEventListener('watchlist-updated', handleUpdate);
-    return () => {
-      mounted = false;
-      window.removeEventListener('watchlist-updated', handleUpdate);
-    };
-  }, [user?.id, authLoading]);
-
-  if (authLoading) return null;
+  const { watchlist } = useGuestStore();
 
   return (
     <div className="collection-page">
@@ -48,11 +14,7 @@ export function WatchlistPage() {
       </div>
 
       <div className="collection-content">
-        {loading ? (
-          <div className="collection-empty">
-            <p>Loading your watchlist...</p>
-          </div>
-        ) : movies.length === 0 ? (
+        {watchlist.length === 0 ? (
           <div className="collection-empty">
             <div className="empty-icon">♡</div>
             <h2>Your watchlist is empty.</h2>
@@ -63,7 +25,7 @@ export function WatchlistPage() {
           </div>
         ) : (
           <div className="collection-grid">
-            {movies.map((movie) => (
+            {watchlist.map((movie) => (
               <MovieCard 
                 key={movie.id} 
                 movie={{
@@ -73,7 +35,7 @@ export function WatchlistPage() {
                   year: movie.year,
                   posterPath: movie.poster_path,
                   backdropPath: movie.backdrop_path,
-                  overview: '' // We don't store overview in DB currently
+                  overview: ''
                 } as any} 
               />
             ))}

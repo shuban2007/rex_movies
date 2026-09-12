@@ -35,7 +35,7 @@ const apiPlugin = () => ({
       }
 
       // ── Helper: Perform TMDB Request ──────────────────
-      const handleTmdbRequest = async (tmdbPath: string, queryParams: URLSearchParams = new URLSearchParams()) => {
+      const handleTmdbRequest = async (tmdbPath: string, queryParams: URLSearchParams = new URLSearchParams(), defaultMediaType: 'movie' | 'tv' = 'movie') => {
         try {
           const tmdbUrl = `https://api.tmdb.org/3${tmdbPath}?${queryParams.toString()}`;
           const controller = new AbortController();
@@ -74,14 +74,20 @@ const apiPlugin = () => ({
           }
 
           const data = await tmdbRes.json() as any;
-          const results = (data.results || []).slice(0, 20).map((movie: any) => ({
-            id: movie.id,
-            title: movie.title,
-            year: movie.release_date ? movie.release_date.split('-')[0] : null,
-            posterPath: movie.poster_path || null,
-            backdropPath: movie.backdrop_path || null,
-            overview: movie.overview || '',
-          }));
+          const results = (data.results || []).slice(0, 20).map((item: any) => {
+            const type = item.media_type || defaultMediaType;
+            return {
+              id: item.id,
+              mediaType: type,
+              title: type === 'movie' ? item.title : item.name,
+              year: type === 'movie' 
+                ? (item.release_date ? item.release_date.split('-')[0] : null)
+                : (item.first_air_date ? item.first_air_date.split('-')[0] : null),
+              posterPath: item.poster_path || null,
+              backdropPath: item.backdrop_path || null,
+              overview: item.overview || '',
+            };
+          });
 
           res.statusCode = 200;
           return res.end(JSON.stringify({ results }));
@@ -107,6 +113,26 @@ const apiPlugin = () => ({
       };
 
       // ── Endpoints ─────────────────────────────────────
+      if (pathname === '/api/section') {
+        const targetPath = url.searchParams.get('path');
+        const mediaType = url.searchParams.get('type') as 'movie' | 'tv' | null;
+
+        if (!targetPath || !targetPath.startsWith('/')) {
+          res.statusCode = 400;
+          return res.end(JSON.stringify({ error: { code: 'INVALID_PATH', message: 'Valid TMDB path required.' } }));
+        }
+
+        const params = new URLSearchParams(url.searchParams);
+        params.delete('path');
+        params.delete('type');
+        
+        if (!params.has('language')) {
+          params.set('language', 'en-US');
+        }
+
+        return handleTmdbRequest(targetPath, params, mediaType || 'movie');
+      }
+
       if (pathname === '/api/search-movies') {
         const rawQuery = url.searchParams.get('q');
         if (!rawQuery || !rawQuery.trim()) {

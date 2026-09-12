@@ -150,54 +150,6 @@
   color: rgba(240, 240, 245, 0.5);
 }
 
-.auth-prompt-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(7, 7, 11, 0.9);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  text-align: center;
-  border-radius: 12px;
-}
-
-.auth-prompt-overlay p {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: rgba(240, 240, 245, 0.9);
-  margin: 0 0 1rem 0;
-}
-
-.auth-prompt-btn {
-  background: #ffffff;
-  color: #07070b;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-  margin-bottom: 0.5rem;
-  width: 100%;
-}
-
-.auth-prompt-close {
-  background: transparent;
-  color: rgba(240, 240, 245, 0.6);
-  border: none;
-  font-size: 0.8rem;
-  cursor: pointer;
-  padding: 0.5rem;
-}
-
-.auth-prompt-close:hover {
-  color: rgba(240, 240, 245, 0.9);
-}
 
 /* ─── Mobile ─────────────────────────────────────────────────── */
 @media (max-width: 768px) {

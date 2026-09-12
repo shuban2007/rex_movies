@@ -2,8 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import type { MovieSearchResult, MediaSearchResult, TvSeriesDetails } from '../../services/tmdb';
 import { getImageUrl } from '../../utils/imageUrl';
-import { watchlistService } from '../../services/watchlist';
-import { useAuth } from '../../hooks/useAuth';
+import { useGuestStore } from '../../context/GuestStoreContext';
 import './MovieCard.css';
 
 interface MovieCardProps {
@@ -12,24 +11,15 @@ interface MovieCardProps {
 
 export function MovieCard({ movie }: MovieCardProps) {
   const navigate = useNavigate();
-  const { user, signInWithGoogle } = useAuth();
+  const { isInWatchlist, addToWatchlist, removeFromWatchlist } = useGuestStore();
   const [inWatchlist, setInWatchlist] = useState(false);
-  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
 
   // Infer media type safely
   const mediaType = (movie as MediaSearchResult).mediaType || 'movie';
 
   useEffect(() => {
-    // Initial sync check based on cached data
-    setInWatchlist(watchlistService.isInWatchlistSync(movie.id));
-    
-    const handleWatchlistUpdate = () => {
-      setInWatchlist(watchlistService.isInWatchlistSync(movie.id));
-    };
-    
-    window.addEventListener('watchlist-updated', handleWatchlistUpdate);
-    return () => window.removeEventListener('watchlist-updated', handleWatchlistUpdate);
-  }, [movie.id, user]);
+    setInWatchlist(isInWatchlist(movie.id, mediaType));
+  }, [movie.id, mediaType, isInWatchlist]);
 
   const handleCardClick = () => {
     navigate(`/watch/${mediaType}/${movie.id}`);
@@ -37,16 +27,11 @@ export function MovieCard({ movie }: MovieCardProps) {
 
   const handleWatchlistClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    
-    if (!user) {
-      setShowAuthPrompt(true);
-      return;
-    }
 
     if (inWatchlist) {
-      await watchlistService.removeMedia(movie.id, user.id);
+      removeFromWatchlist(movie.id, mediaType);
     } else {
-      await watchlistService.addMedia(movie, mediaType, user.id);
+      addToWatchlist(movie, mediaType);
     }
   };
 
@@ -96,21 +81,6 @@ export function MovieCard({ movie }: MovieCardProps) {
         >
           {inWatchlist ? '♥' : '♡'}
         </button>
-
-        {showAuthPrompt && (
-          <div className="auth-prompt-overlay" onClick={(e) => e.stopPropagation()}>
-            <p>Sign in to add movies to your watchlist.</p>
-            <button className="auth-prompt-btn" onClick={() => signInWithGoogle()}>
-              Sign in with Google
-            </button>
-            <button className="auth-prompt-close" onClick={(e) => {
-              e.stopPropagation();
-              setShowAuthPrompt(false);
-            }}>
-              Cancel
-            </button>
-          </div>
-        )}
       </div>
 
       <div className="movie-card-info">

@@ -22,11 +22,8 @@ export function PrivacyPolicyPage() {
 
           <h2>1. Information We Collect</h2>
 
-          <h3>1.1 Account Information</h3>
-          <p>If you choose to sign in, we use <strong>Supabase Authentication</strong> with Google OAuth. This provides us with your Google display name, email address, and profile photo. We do not access your Google password or any other Google account data.</p>
-
-          <h3>1.2 Watchlist &amp; Watch History</h3>
-          <p>When signed in, your watchlist selections and watch history (which movies/shows you visited) are stored in our <strong>Supabase database</strong> and associated with your account. If you use REX.io as a guest (without signing in), watch history is stored temporarily in your browser's <strong>sessionStorage</strong> and is cleared when you close the tab. Guest watchlist data is cached in <strong>localStorage</strong>.</p>
+          <h3>1.1 Watchlist &amp; Watch History</h3>
+          <p>Your watchlist selections and watch history (which movies/shows you visited) are stored locally on your device in your browser's <strong>localStorage</strong>. This data remains on your device and is not transmitted to any server. It persists across browser sessions until you explicitly clear it.</p>
 
           <h3>1.3 Search Queries</h3>
           <p>Search queries you type are sent to our server-side API, which proxies requests to the <strong>TMDB (The Movie Database)</strong> API. We do not permanently log or store individual search queries.</p>
@@ -39,26 +36,23 @@ export function PrivacyPolicyPage() {
 
           <h2>2. How We Use Information</h2>
           <ul>
-            <li><strong>Account data</strong> — to authenticate you and personalize your experience (display name, avatar).</li>
-            <li><strong>Watchlist &amp; history</strong> — to let you save and revisit movies/shows.</li>
+            <li><strong>Watchlist &amp; history</strong> — stored locally on your device to let you save and revisit movies/shows.</li>
             <li><strong>Search queries</strong> — to return relevant movie and TV results from TMDB.</li>
             <li><strong>Technical/server logs</strong> — for security, debugging, and infrastructure operation.</li>
           </ul>
 
           <h2>3. Third-Party Services</h2>
           <ul>
-            <li><strong>Supabase</strong> — authentication, database storage for watchlist and history. <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">Supabase Privacy Policy</a>.</li>
-            <li><strong>Google OAuth</strong> — sign-in authentication. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google Privacy Policy</a>.</li>
             <li><strong>TMDB</strong> — movie/TV metadata and images. <a href="https://www.themoviedb.org/privacy-policy" target="_blank" rel="noopener noreferrer">TMDB Privacy Policy</a>.</li>
             <li><strong>External Streaming Providers</strong> — video content is embedded from third-party providers via iframe. These providers may set their own cookies and collect data independently. See our <Link to="/terms">Terms &amp; Conditions</Link> for more details.</li>
             <li><strong>Vercel</strong> — hosting infrastructure. <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">Vercel Privacy Policy</a>.</li>
           </ul>
 
           <h2>4. Data Retention</h2>
-          <p>Account-linked watchlist and history data is retained as long as your account exists. Guest session data is automatically cleared when the browser session ends. Server-side logs are managed by our hosting provider according to their retention policies.</p>
+          <p>Watchlist and history data is stored locally in your browser's localStorage and persists until you clear it through the application or your browser settings. Server-side logs are managed by our hosting provider according to their retention policies.</p>
 
           <h2>5. Your Rights</h2>
-          <p>You may request access to, correction of, or deletion of your personal data by contacting us at <a href="mailto:shuban1227@gmail.com">shuban1227@gmail.com</a>. You can delete your watch history and watchlist directly through the application at any time. You can sign out and revoke Google access through your Google Account settings.</p>
+          <p>You can delete your watch history and watchlist directly through the application at any time. You can also clear all locally stored data through your browser settings. For any privacy-related requests, contact us at <a href="mailto:shuban1227@gmail.com">shuban1227@gmail.com</a>.</p>
 
           <h2>6. Children's Privacy</h2>
           <p>REX.io is not directed at children under 13. We do not knowingly collect personal information from children under 13.</p>
@@ -96,21 +90,11 @@ export function CookiePolicyPage() {
 
           <h2>2. How REX.io Uses Browser Storage</h2>
 
-          <h3>2.1 Strictly Necessary (Authentication)</h3>
-          <p>When you sign in with Google, <strong>Supabase</strong> sets authentication cookies and localStorage tokens to manage your session. These are essential for the sign-in functionality to work and cannot be disabled without breaking authentication.</p>
+          <h3>2.1 Functionality (Watchlist &amp; History)</h3>
           <ul>
-            <li><strong>Supabase auth tokens</strong> — stored in localStorage by the Supabase client library to maintain your authenticated session across page reloads.</li>
-          </ul>
-
-          <h3>2.2 Functionality (Watchlist &amp; Preferences)</h3>
-          <ul>
-            <li><strong>Guest watchlist cache</strong> — stored in localStorage to allow unauthenticated users to maintain a temporary watchlist.</li>
-            <li><strong>Application preferences</strong> — any user preferences or UI state may be stored in localStorage via the application's persistent state hook.</li>
-          </ul>
-
-          <h3>2.3 Functionality (Watch History)</h3>
-          <ul>
-            <li><strong>Guest watch history</strong> — stored in sessionStorage for unauthenticated users. This data is automatically cleared when you close the browser tab.</li>
+            <li><strong>Watchlist data</strong> — stored in localStorage to maintain your saved movies and TV shows across browser sessions.</li>
+            <li><strong>Watch history</strong> — stored in localStorage to track your recently watched content and viewing progress.</li>
+            <li><strong>Application preferences</strong> — any user preferences or UI state may be stored in localStorage.</li>
           </ul>
 
           <h3>2.4 Third-Party Cookies</h3>
@@ -126,7 +110,7 @@ export function CookiePolicyPage() {
           </ul>
 
           <h2>4. Managing Cookies &amp; Storage</h2>
-          <p>You can clear cookies and browser storage at any time through your browser settings. Note that clearing Supabase authentication data will sign you out, and clearing localStorage will remove any cached watchlist data.</p>
+          <p>You can clear cookies and browser storage at any time through your browser settings. Note that clearing localStorage will remove your saved watchlist and watch history data.</p>
 
           <h2>5. Changes</h2>
           <p>We may update this Cookie Policy if our storage practices change. Updates will be reflected with a new "Last Updated" date on this page.</p>
@@ -154,19 +138,19 @@ export function TermsConditionsPage() {
           <p>By accessing and using REX.io, you agree to be bound by these Terms &amp; Conditions. If you do not agree, please do not use the website.</p>
 
           <h2>1. Description of Service</h2>
-          <p>REX.io is a web application that allows users to discover, search for, and organize movies and TV shows. The platform provides metadata sourced from <strong>TMDB (The Movie Database)</strong>, user features such as watchlists and watch history powered by <strong>Supabase</strong>, and an embedded video player that loads content from external third-party streaming providers.</p>
+          <p>REX.io is a web application that allows users to discover, search for, and organize movies and TV shows. The platform provides metadata sourced from <strong>TMDB (The Movie Database)</strong>, user features such as watchlists and watch history stored locally on your device, and an embedded video player that loads content from external third-party streaming providers.</p>
 
           <div className="legal-disclaimer">
             <p><strong>External Streaming Disclaimer:</strong> REX.io does not host, upload, store, or distribute any video/movie/TV content on its own servers. The video player embeds content from independent third-party streaming providers via iframe technology. Playback availability, quality, advertisements, subtitles, buffering, geographic restrictions, and any other provider-specific behavior are entirely controlled by those external services. REX.io has no control over and makes no guarantees regarding the content delivered by these providers.</p>
           </div>
 
-          <p>While video content is delivered by external providers, REX.io may still process website-related information such as search queries, user preferences, account details, watchlists, watch history, and standard technical/server logs as described in our <Link to="/privacy">Privacy Policy</Link>.</p>
+          <p>While video content is delivered by external providers, REX.io may still process website-related information such as search queries, user preferences, and standard technical/server logs as described in our <Link to="/privacy">Privacy Policy</Link>. Watchlist and watch history data is stored locally on your device.</p>
 
           <h2>2. Acceptable Use</h2>
           <p>You agree to use REX.io only for lawful purposes and in a manner consistent with these Terms. You may:</p>
           <ul>
             <li>Browse, search for, and discover movie/TV metadata.</li>
-            <li>Create an account to save watchlists and history.</li>
+            <li>Save movies and shows to your local watchlist and history.</li>
             <li>Use the embedded player to access content provided by third-party services.</li>
           </ul>
 
@@ -182,14 +166,12 @@ export function TermsConditionsPage() {
           </ul>
 
           <h2>4. User Responsibility</h2>
-          <p>You are solely responsible for your use of REX.io and for any content you access through the service. If you create an account, you are responsible for maintaining the confidentiality of your authentication credentials.</p>
+          <p>You are solely responsible for your use of REX.io and for any content you access through the service.</p>
 
           <h2>5. Third-Party Services</h2>
           <p>REX.io integrates with the following third-party services:</p>
           <ul>
             <li><strong>TMDB</strong> — provides movie/TV metadata and images. TMDB's terms and conditions apply to their data.</li>
-            <li><strong>Supabase</strong> — provides authentication and database services.</li>
-            <li><strong>Google</strong> — provides OAuth authentication.</li>
             <li><strong>External streaming providers</strong> — deliver video content via embedded iframes. Each provider operates under their own terms of service.</li>
           </ul>
           <p>REX.io is not responsible for the content, privacy practices, or availability of these third-party services.</p>
@@ -238,8 +220,8 @@ export function TermsOfUsePage() {
           <h2>1. Eligibility</h2>
           <p>You must be at least 13 years of age to use REX.io. If you are under 18, you should use this service only with the involvement of a parent or guardian.</p>
 
-          <h2>2. Account Usage</h2>
-          <p>Creating an account is optional. You can browse and search REX.io without signing in. Signing in via Google enables persistent watchlists and watch history across sessions and devices. You may sign out or request account deletion at any time.</p>
+          <h2>2. Using REX.io</h2>
+          <p>REX.io operates as a guest-only application. Your watchlist and watch history are stored locally on your device using your browser's localStorage. No account creation or sign-in is required. Your data persists across browser sessions on the same device.</p>
 
           <h2>3. Content Accessed Through REX.io</h2>
 

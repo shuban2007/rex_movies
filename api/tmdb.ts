@@ -20,7 +20,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   }
 
   // ── Helper: Perform TMDB Request ──────────────────
-  const handleTmdbRequest = async (tmdbPath: string, queryParams: URLSearchParams = new URLSearchParams()) => {
+  const handleTmdbRequest = async (tmdbPath: string, queryParams: URLSearchParams = new URLSearchParams(), defaultMediaType: 'movie' | 'tv' = 'movie') => {
     try {
       const tmdbUrl = `https://api.tmdb.org/3${tmdbPath}?${queryParams.toString()}`;
       const controller = new AbortController();
@@ -62,14 +62,20 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       }
 
       const data = await tmdbRes.json() as any;
-      const results = (data.results || []).slice(0, 20).map((movie: any) => ({
-        id: movie.id,
-        title: movie.title,
-        year: movie.release_date ? movie.release_date.split('-')[0] : null,
-        posterPath: movie.poster_path || null,
-        backdropPath: movie.backdrop_path || null,
-        overview: movie.overview || '',
-      }));
+      const results = (data.results || []).slice(0, 20).map((item: any) => {
+        const type = item.media_type || defaultMediaType;
+        return {
+          id: item.id,
+          mediaType: type,
+          title: type === 'movie' ? item.title : item.name,
+          year: type === 'movie' 
+            ? (item.release_date ? item.release_date.split('-')[0] : null)
+            : (item.first_air_date ? item.first_air_date.split('-')[0] : null),
+          posterPath: item.poster_path || null,
+          backdropPath: item.backdrop_path || null,
+          overview: item.overview || '',
+        };
+      });
 
       res.statusCode = 200;
       res.end(JSON.stringify({ results }));
@@ -96,6 +102,27 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   };
 
   // ── Endpoints ─────────────────────────────────────
+  if (pathname === '/api/section') {
+    const targetPath = url.searchParams.get('path');
+    const mediaType = url.searchParams.get('type') as 'movie' | 'tv' | null;
+
+    if (!targetPath || !targetPath.startsWith('/')) {
+      res.statusCode = 400;
+      res.end(JSON.stringify({ error: { code: 'INVALID_PATH', message: 'Valid TMDB path required.' } }));
+      return;
+    }
+
+    const params = new URLSearchParams(url.searchParams);
+    params.delete('path');
+    params.delete('type');
+    
+    if (!params.has('language')) {
+      params.set('language', 'en-US');
+    }
+
+    return handleTmdbRequest(targetPath, params, mediaType || 'movie');
+  }
+
   if (pathname === '/api/search-movies') {
     const rawQuery = url.searchParams.get('q');
     if (!rawQuery || !rawQuery.trim()) {
@@ -244,7 +271,65 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       res.end(JSON.stringify({ error: { code: 'INVALID_ID', message: 'Valid movie ID required.' } }));
       return;
     }
-    return handleTmdbRequest(`/movie/${id}/recommendations`, new URLSearchParams({ language: 'en-US', page: '1' }));
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10_000);
+      
+      const fetchPage = async (endpoint: string) => {
+        const url = `https://api.tmdb.org/3${endpoint}?language=en-US&page=1`;
+        const res = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'accept': 'application/json',
+          },
+          signal: controller.signal,
+        });
+        if (!res.ok) return [];
+        const data = await res.json() as any;
+        return data.results || [];
+      };
+
+      try {
+        const [recs, similar] = await Promise.all([
+          fetchPage(`/movie/${id}/recommendations`),
+          fetchPage(`/movie/${id}/similar`)
+        ]);
+
+        const allResults = [...recs, ...similar];
+        const uniqueMovies = new Map();
+        
+        for (const movie of allResults) {
+          if (movie.id.toString() !== id && !uniqueMovies.has(movie.id)) {
+            uniqueMovies.set(movie.id, {
+              id: movie.id,
+              title: movie.title,
+              year: movie.release_date ? movie.release_date.split('-')[0] : null,
+              posterPath: movie.poster_path || null,
+              backdropPath: movie.backdrop_path || null,
+              overview: movie.overview || '',
+            });
+          }
+        }
+        
+        const results = Array.from(uniqueMovies.values()).slice(0, 30);
+        
+        res.statusCode = 200;
+        res.end(JSON.stringify({ results }));
+      } finally {
+        clearTimeout(timeout);
+      }
+      return;
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        res.statusCode = 504;
+        res.end(JSON.stringify({ error: { code: 'TMDB_TIMEOUT', message: 'TMDB took too long.' } }));
+        return;
+      }
+      res.statusCode = 500;
+      res.end(JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch recommendations.' } }));
+      return;
+    }
   }
 
   if (pathname.startsWith('/api/tv/') && !pathname.includes('/season/')) {

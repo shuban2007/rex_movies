@@ -1,5 +1,4 @@
 import { Link, useLocation } from 'react-router-dom';
-import { AccountMenu } from '../account/AccountMenu';
 import { MovieSearch } from '../search/MovieSearch';
 import { InstallButton } from '../pwa/InstallButton';
 import './Header.css';
@@ -27,9 +26,6 @@ export function Header() {
             <span className="nav-icon">◷</span>
             <span className="nav-text">History</span>
           </Link>
-          <div className="nav-account-wrapper">
-            <AccountMenu />
-          </div>
         </nav>
       </div>
     </header>

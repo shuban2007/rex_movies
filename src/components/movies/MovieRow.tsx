@@ -1,10 +1,10 @@
 import { MovieCard } from './MovieCard';
-import type { MovieSearchResult } from '../../services/tmdb';
+import type { MediaSearchResult } from '../../services/tmdb';
 import './MovieRow.css';
 
 interface MovieRowProps {
   title: string;
-  movies: MovieSearchResult[];
+  movies: MediaSearchResult[];
 }
 
 export function MovieRow({ title, movies }: MovieRowProps) {

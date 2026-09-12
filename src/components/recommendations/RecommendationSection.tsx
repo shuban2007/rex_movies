@@ -20,8 +20,7 @@ export function RecommendationSection({ tmdbId }: RecommendationSectionProps) {
 
     getRecommendations(tmdbId, controller.signal)
       .then(results => {
-        // Only show up to 10 recommendations
-        setRecommendations(results.slice(0, 10));
+        setRecommendations(results);
         setIsLoading(false);
       })
       .catch(err => {

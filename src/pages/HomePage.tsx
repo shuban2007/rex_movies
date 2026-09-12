@@ -1,34 +1,34 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { HeroMovie } from '../components/hero/HeroMovie';
-import { MovieRow } from '../components/movies/MovieRow';
-import { 
-  getTrendingMovies, 
-  getPopularMovies, 
-  getTopRatedMovies, 
-  type MovieSearchResult 
-} from '../services/tmdb';
+import { LazyMovieRow } from '../components/movies/LazyMovieRow';
+import { getHomeSection } from '../services/tmdb';
+import type { MediaSearchResult } from '../services/tmdb';
+import { homeSections } from '../config/homeSections';
+import { WatchRandomModal } from '../components/movies/WatchRandomModal';
 import './HomePage.css';
 
 export function HomePage() {
-  const [trending, setTrending] = useState<MovieSearchResult[]>([]);
-  const [popular, setPopular] = useState<MovieSearchResult[]>([]);
-  const [topRated, setTopRated] = useState<MovieSearchResult[]>([]);
+  const [heroMovies, setHeroMovies] = useState<MediaSearchResult[]>([]);
+  const [isRandomModalOpen, setIsRandomModalOpen] = useState(false);
+  const seenIdsRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
-    // Fetch all sections independently
     const controller = new AbortController();
-
-    Promise.allSettled([
-      getTrendingMovies(controller.signal).then(setTrending),
-      getPopularMovies(controller.signal).then(setPopular),
-      getTopRatedMovies(controller.signal).then(setTopRated)
-    ]).catch(console.error);
+    
+    // We only actively pre-fetch the Hero content (first section usually)
+    const heroSection = homeSections[0];
+    
+    getHomeSection(heroSection, controller.signal)
+      .then(results => {
+        setHeroMovies(results);
+        results.forEach(m => seenIdsRef.current.add(m.id));
+      })
+      .catch(console.error);
 
     return () => controller.abort();
   }, []);
 
-  // Use the first valid trending movie with a backdrop for the Hero
-  const heroMovie = trending.find(m => m.backdropPath) || trending[0];
+  const heroMovie = heroMovies.find(m => m.backdropPath) || heroMovies[0];
 
   return (
     <div className="home-page">
@@ -38,12 +38,40 @@ export function HomePage() {
       )}
 
       <div className="home-content">
+        <div className="watch-random-banner">
+          <button className="watch-random-trigger" onClick={() => setIsRandomModalOpen(true)}>
+            🎲 Watch Random
+          </button>
+        </div>
+
         <div className="discovery-sections">
-          <MovieRow title="Trending Now" movies={trending} />
-          <MovieRow title="Popular Movies" movies={popular} />
-          <MovieRow title="Top Rated" movies={topRated} />
+          {homeSections.map((section, index) => {
+            // First section is preloaded for hero, pass it down
+            if (index === 0 && heroMovies.length > 0) {
+              return (
+                <LazyMovieRow 
+                  key={section.id} 
+                  config={section} 
+                  initialData={heroMovies} 
+                  seenIdsRef={seenIdsRef} 
+                />
+              );
+            }
+            
+            return (
+              <LazyMovieRow 
+                key={section.id} 
+                config={section} 
+                seenIdsRef={seenIdsRef} 
+              />
+            );
+          })}
         </div>
       </div>
+
+      {isRandomModalOpen && (
+        <WatchRandomModal onClose={() => setIsRandomModalOpen(false)} />
+      )}
     </div>
   );
 }

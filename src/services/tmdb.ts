@@ -45,7 +45,7 @@ export class SearchError extends Error {
   }
 }
 
-async function fetchTmdbEndpoint(endpoint: string, signal?: AbortSignal): Promise<MovieSearchResult[]> {
+async function fetchTmdbEndpoint<T = any>(endpoint: string, signal?: AbortSignal): Promise<T[]> {
   try {
     const response = await fetch(`/api/${endpoint}`, { signal });
 
@@ -105,7 +105,17 @@ export async function getTopRatedMovies(signal?: AbortSignal): Promise<MovieSear
 }
 
 export async function getRecommendations(tmdbId: number, signal?: AbortSignal): Promise<MovieSearchResult[]> {
-  return fetchTmdbEndpoint(`recommendations/${tmdbId}`, signal);
+  return fetchTmdbEndpoint<MovieSearchResult>(`recommendations/${tmdbId}`, signal);
+}
+
+export async function getHomeSection(
+  config: import('../config/homeSections').HomeSectionConfig,
+  signal?: AbortSignal
+): Promise<MediaSearchResult[]> {
+  const params = new URLSearchParams(config.params || {});
+  params.set('path', config.endpoint);
+  params.set('type', config.mediaType);
+  return fetchTmdbEndpoint<MediaSearchResult>(`section?${params.toString()}`, signal);
 }
 
 export async function getMovieDetails(tmdbId: number, signal?: AbortSignal): Promise<MovieSearchResult | null> {

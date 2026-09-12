@@ -1,198 +1,148 @@
-import { supabase } from '../lib/supabase';
 import type { WatchlistItem } from '../types/database';
 import type { MediaSearchResult, TvSeriesDetails, MovieSearchResult } from './tmdb';
 
-let watchlistCache: WatchlistItem[] | null = null;
-let currentUserId: string | null = null;
+const STORAGE_KEY = 'rexio_watchlist';
+const LEGACY_SESSION_KEY = 'guest_watchlist';
 
-const GUEST_WATCHLIST_KEY = 'guest_watchlist';
+// ── Safe localStorage helpers ──────────────────────────────
 
-function getGuestWatchlist(): WatchlistItem[] {
+function readWatchlist(): WatchlistItem[] {
   try {
-    const data = sessionStorage.getItem(GUEST_WATCHLIST_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch (err) {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (!data) return [];
+    const parsed = JSON.parse(data);
+    if (!Array.isArray(parsed)) return [];
+    // Filter out malformed records
+    return parsed.filter(
+      (item: any) =>
+        item &&
+        typeof item.tmdb_id === 'number' &&
+        typeof item.media_type === 'string' &&
+        typeof item.title === 'string'
+    );
+  } catch {
     return [];
   }
 }
 
-function setGuestWatchlist(list: WatchlistItem[]) {
-  sessionStorage.setItem(GUEST_WATCHLIST_KEY, JSON.stringify(list));
+function writeWatchlist(list: WatchlistItem[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  } catch {
+    // Quota exceeded or storage unavailable — silently ignore
+  }
 }
 
-export const watchlistService = {
-  async getWatchlist(userId: string | undefined): Promise<WatchlistItem[]> {
-    if (!userId) {
-      watchlistCache = getGuestWatchlist();
-      currentUserId = null;
-      return watchlistCache;
-    }
+// ── One-time migration from sessionStorage ─────────────────
 
-    // Return cache if it matches the current user
-    if (watchlistCache && currentUserId === userId) {
-      return watchlistCache;
-    }
-    
-    const { data, error } = await supabase
-      .from('watchlist')
-      .select('*')
-      .order('created_at', { ascending: false });
-      
-    if (error) {
-      console.error('Error fetching watchlist:', error.message);
-      return [];
-    }
-    
-    // Normalize old records missing media_type
-    const normalizedData = (data || []).map(item => ({
-      ...item,
-      media_type: item.media_type || 'movie' // default if missing
-    }));
+let migrationDone = false;
 
-    watchlistCache = normalizedData;
-    currentUserId = userId;
-    return watchlistCache;
-  },
+function migrateFromSessionStorage(): void {
+  if (migrationDone) return;
+  migrationDone = true;
 
-  isInWatchlistSync(tmdbId: number): boolean {
-    if (!watchlistCache) return false;
-    return !!watchlistCache.find(m => m.tmdb_id === tmdbId);
-  },
+  try {
+    const existing = localStorage.getItem(STORAGE_KEY);
+    if (existing) return; // Already has localStorage data, skip migration
 
-  async addMedia(media: MediaSearchResult | MovieSearchResult | TvSeriesDetails, mediaType: 'movie' | 'tv', userId: string | undefined): Promise<boolean> {
-    if (!userId) {
-      const guestList = getGuestWatchlist();
-      if (!guestList.find(m => m.tmdb_id === media.id)) {
-        guestList.unshift({
-          id: `guest_${media.id}`,
-          user_id: 'guest',
-          tmdb_id: media.id,
-          media_type: mediaType,
-          title: media.title,
-          year: media.year,
-          poster_path: media.posterPath || (media as any).backdropPath,
-          backdrop_path: media.backdropPath || null,
-          created_at: new Date().toISOString()
-        });
-        setGuestWatchlist(guestList);
-        watchlistCache = guestList;
-        window.dispatchEvent(new Event('watchlist-updated'));
-      }
-      return true;
-    }
+    const sessionData = sessionStorage.getItem(LEGACY_SESSION_KEY);
+    if (!sessionData) return;
 
-    const { error } = await supabase
-      .from('watchlist')
-      .insert({
-        user_id: userId,
-        tmdb_id: media.id,
-        media_type: mediaType,
-        title: media.title,
-        year: media.year,
-        poster_path: media.posterPath || (media as any).backdropPath,
-        backdrop_path: media.backdropPath || null
-      });
-
-    if (error) {
-      if (error.code !== '23505') {
-        console.error('Error adding to watchlist:', error.message);
-        return false;
-      }
-    }
-
-    // Optimistically update cache
-    if (watchlistCache) {
-      watchlistCache.unshift({
-        id: 'optimistic',
-        user_id: userId,
-        tmdb_id: media.id,
-        media_type: mediaType,
-        title: media.title,
-        year: media.year,
-        poster_path: media.posterPath || (media as any).backdropPath,
-        backdrop_path: media.backdropPath || null,
-        created_at: new Date().toISOString()
-      });
-    }
-
-    window.dispatchEvent(new Event('watchlist-updated'));
-    return true;
-  },
-
-  async removeMedia(tmdbId: number, userId: string | undefined): Promise<boolean> {
-    if (!userId) {
-      const guestList = getGuestWatchlist();
-      const newList = guestList.filter(m => m.tmdb_id !== tmdbId);
-      setGuestWatchlist(newList);
-      watchlistCache = newList;
-      window.dispatchEvent(new Event('watchlist-updated'));
-      return true;
-    }
-
-    const { error } = await supabase
-      .from('watchlist')
-      .delete()
-      .match({ user_id: userId, tmdb_id: tmdbId });
-
-    if (error) {
-      console.error('Error removing from watchlist:', error.message);
-      return false;
-    }
-
-    if (watchlistCache) {
-      watchlistCache = watchlistCache.filter(m => m.tmdb_id !== tmdbId);
-    }
-
-    window.dispatchEvent(new Event('watchlist-updated'));
-    return true;
-  },
-
-  async mergeGuestWatchlist(userId: string): Promise<void> {
-    const guestList = getGuestWatchlist();
-    if (guestList.length === 0) return;
-
-    try {
-      // Get existing Supabase watchlist to avoid duplicates
-      const { data: existingData, error: fetchError } = await supabase
-        .from('watchlist')
-        .select('tmdb_id')
-        .eq('user_id', userId);
-
-      if (fetchError) throw fetchError;
-
-      const existingIds = new Set((existingData || []).map(m => m.tmdb_id));
-      const toInsert = guestList.filter(m => !existingIds.has(m.tmdb_id)).map(m => ({
-        user_id: userId,
-        tmdb_id: m.tmdb_id,
-        media_type: m.media_type || 'movie',
-        title: m.title,
-        year: m.year,
-        poster_path: m.poster_path,
-        backdrop_path: m.backdrop_path,
-        created_at: m.created_at
+    const parsed = JSON.parse(sessionData);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      // Normalize: ensure media_type exists
+      const migrated = parsed.map((item: any) => ({
+        id: item.id || `migrated_${item.tmdb_id}_${item.media_type || 'movie'}`,
+        tmdb_id: item.tmdb_id,
+        media_type: item.media_type || 'movie',
+        title: item.title || '',
+        year: item.year || null,
+        poster_path: item.poster_path || null,
+        backdrop_path: item.backdrop_path || null,
+        created_at: item.created_at || new Date().toISOString(),
       }));
-
-      if (toInsert.length > 0) {
-        const { error: insertError } = await supabase
-          .from('watchlist')
-          .insert(toInsert);
-          
-        if (insertError) {
-          console.error('Error merging guest watchlist:', insertError.message);
-          return;
-        }
-      }
-
-      sessionStorage.removeItem(GUEST_WATCHLIST_KEY);
-      this.clearCache(); // Force refresh from Supabase on next load
-      window.dispatchEvent(new Event('watchlist-updated'));
-    } catch (err) {
-      console.error('Failed to merge guest watchlist:', err);
+      writeWatchlist(migrated);
     }
+
+    sessionStorage.removeItem(LEGACY_SESSION_KEY);
+  } catch {
+    // Migration failed — skip silently, don't crash
+  }
+}
+
+// ── Service ────────────────────────────────────────────────
+
+export const watchlistService = {
+  /**
+   * Get the full watchlist from localStorage.
+   */
+  getWatchlist(): WatchlistItem[] {
+    migrateFromSessionStorage();
+    return readWatchlist();
   },
 
-  clearCache() {
-    watchlistCache = null;
-    currentUserId = null;
-  }
+  /**
+   * Check if a specific item is in the watchlist.
+   * Unique key: tmdb_id + media_type
+   */
+  isInWatchlist(tmdbId: number, mediaType: string = 'movie'): boolean {
+    const list = readWatchlist();
+    return list.some(item => item.tmdb_id === tmdbId && item.media_type === mediaType);
+  },
+
+  /**
+   * Synchronous check from an in-memory snapshot (backwards compat).
+   * Now just delegates to isInWatchlist.
+   */
+  isInWatchlistSync(tmdbId: number): boolean {
+    const list = readWatchlist();
+    return list.some(item => item.tmdb_id === tmdbId);
+  },
+
+  /**
+   * Add media to watchlist. No-op if already present (no duplicates).
+   */
+  addMedia(
+    media: MediaSearchResult | MovieSearchResult | TvSeriesDetails,
+    mediaType: 'movie' | 'tv'
+  ): boolean {
+    migrateFromSessionStorage();
+    const list = readWatchlist();
+
+    // Check for duplicate by tmdb_id + media_type
+    if (list.some(item => item.tmdb_id === media.id && item.media_type === mediaType)) {
+      return true; // Already exists
+    }
+
+    list.unshift({
+      id: `${mediaType}_${media.id}`,
+      tmdb_id: media.id,
+      media_type: mediaType,
+      title: media.title,
+      year: media.year,
+      poster_path: media.posterPath || (media as any).backdropPath || null,
+      backdrop_path: media.backdropPath || null,
+      created_at: new Date().toISOString(),
+    });
+
+    writeWatchlist(list);
+    window.dispatchEvent(new Event('watchlist-updated'));
+    return true;
+  },
+
+  /**
+   * Remove media from watchlist by tmdb_id + media_type.
+   */
+  removeMedia(tmdbId: number, mediaType: string = 'movie'): boolean {
+    const list = readWatchlist();
+    const filtered = list.filter(
+      item => !(item.tmdb_id === tmdbId && item.media_type === mediaType)
+    );
+
+    if (filtered.length === list.length) return false; // Nothing removed
+
+    writeWatchlist(filtered);
+    window.dispatchEvent(new Event('watchlist-updated'));
+    return true;
+  },
 };

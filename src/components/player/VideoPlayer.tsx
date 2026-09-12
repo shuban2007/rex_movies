@@ -18,9 +18,15 @@ interface VideoPlayerProps {
   season?: number;
   /** TV Episode Number */
   episode?: number;
+  /**
+   * Called when a provider signals that playback has ended.
+   * Future-proof: currently no providers expose this event,
+   * but the listener is ready if they ever do.
+   */
+  onEpisodeEnd?: () => void;
 }
 
-export function VideoPlayer({ tmdbId, title, onRetry, mediaType = 'movie', season, episode }: VideoPlayerProps) {
+export function VideoPlayer({ tmdbId, title, onRetry, mediaType = 'movie', season, episode, onEpisodeEnd }: VideoPlayerProps) {
   const [state, setState] = useState<PlayerState>('empty');
   const [selectedProviderId, setSelectedProviderId] = useState<string>('');
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -68,6 +74,26 @@ export function VideoPlayer({ tmdbId, title, onRetry, mediaType = 'movie', seaso
     if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
     setState('loaded');
   }, []);
+
+  // ── Future-proof: listen for postMessage-based episode-end signals ──
+  useEffect(() => {
+    if (!onEpisodeEnd || mediaType !== 'tv') return;
+
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        // Accept end signals from any provider origin
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        if (data && (data.event === 'ended' || data.type === 'ended' || data.action === 'ended')) {
+          onEpisodeEnd();
+        }
+      } catch {
+        // Not a JSON message or not relevant — ignore
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [onEpisodeEnd, mediaType]);
 
   const handleIframeError = useCallback(() => {
     if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
