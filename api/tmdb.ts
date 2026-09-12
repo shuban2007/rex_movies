@@ -234,7 +234,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
     
     try {
-      const tmdbUrl = `https://api.tmdb.org/3/movie/${id}?language=en-US`;
+      const tmdbUrl = `https://api.tmdb.org/3/movie/${id}?language=en-US&append_to_response=external_ids`;
       const tmdbRes = await fetch(tmdbUrl, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -252,6 +252,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         posterPath: movie.poster_path || null,
         backdropPath: movie.backdrop_path || null,
         overview: movie.overview || '',
+        imdbId: movie.external_ids?.imdb_id || movie.imdb_id || null,
       };
       
       res.statusCode = 200;
@@ -341,7 +342,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
     
     try {
-      const tmdbUrl = `https://api.tmdb.org/3/tv/${id}?language=en-US`;
+      const tmdbUrl = `https://api.tmdb.org/3/tv/${id}?language=en-US&append_to_response=external_ids`;
       const tmdbRes = await fetch(tmdbUrl, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -359,6 +360,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         posterPath: series.poster_path || null,
         backdropPath: series.backdrop_path || null,
         overview: series.overview || '',
+        imdbId: series.external_ids?.imdb_id || null,
         seasons: (series.seasons || []).map((s: any) => ({
           seasonNumber: s.season_number,
           name: s.name,

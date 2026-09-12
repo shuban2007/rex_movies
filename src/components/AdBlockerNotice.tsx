@@ -24,7 +24,7 @@ export function AdBlockerPopup() {
       if ((navigator as any).brave && typeof (navigator as any).brave.isBrave === 'function') {
         try {
           isBrave = await (navigator as any).brave.isBrave();
-        } catch (e) {
+        } catch {
           // ignore
         }
       }

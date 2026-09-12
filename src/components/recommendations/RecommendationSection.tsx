@@ -15,7 +15,9 @@ export function RecommendationSection({ tmdbId }: RecommendationSectionProps) {
   useEffect(() => {
     const controller = new AbortController();
     
+    // eslint-disable-next-line react/set-state-in-effect
     setIsLoading(true);
+    // eslint-disable-next-line react/set-state-in-effect
     setError(false);
 
     getRecommendations(tmdbId, controller.signal)

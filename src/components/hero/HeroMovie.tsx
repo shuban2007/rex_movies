@@ -1,8 +1,7 @@
 import { Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
 import type { MovieSearchResult } from '../../services/tmdb';
 import { getImageUrl } from '../../utils/imageUrl';
-import { useGuestStore } from '../../context/GuestStoreContext';
+import { useGuestStore } from '../../hooks/useGuestStore';
 import './HeroMovie.css';
 
 interface HeroMovieProps {
@@ -10,12 +9,9 @@ interface HeroMovieProps {
 }
 
 export function HeroMovie({ movie }: HeroMovieProps) {
-  const [inWatchlist, setInWatchlist] = useState(false);
   const { isInWatchlist, addToWatchlist, removeFromWatchlist } = useGuestStore();
 
-  useEffect(() => {
-    setInWatchlist(isInWatchlist(movie.id, 'movie'));
-  }, [movie.id, isInWatchlist]);
+  const inWatchlist = isInWatchlist(movie.id, 'movie');
 
   const handleWatchlistClick = (e: React.MouseEvent) => {
     e.stopPropagation();

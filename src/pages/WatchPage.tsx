@@ -4,7 +4,7 @@ import { VideoPlayer } from '../components/player/VideoPlayer';
 import { getMovieDetails, getTvDetails, getTvSeasonEpisodes, type MovieSearchResult, type TvSeriesDetails, type TvEpisode } from '../services/tmdb';
 import { RecommendationSection } from '../components/recommendations/RecommendationSection';
 import { EpisodeList } from '../components/tv/EpisodeList';
-import { useGuestStore } from '../context/GuestStoreContext';
+import { useGuestStore } from '../hooks/useGuestStore';
 import './WatchPage.css';
 
 export function WatchPage() {
@@ -264,6 +264,7 @@ export function WatchPage() {
           <div className="player-section">
             <VideoPlayer 
               tmdbId={numericId} 
+              imdbId={media && 'imdbId' in media ? media.imdbId : undefined}
               mediaType={isTv ? 'tv' : 'movie'}
               season={isTv ? activeSeason : undefined}
               episode={isTv ? activeEpisode : undefined}

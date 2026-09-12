@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { WatchlistItem, HistoryItem } from '../types/database';
 import { watchlistService } from '../services/watchlist';
 import { historyService } from '../services/history';
@@ -6,7 +6,7 @@ import type { MediaSearchResult, TvSeriesDetails, MovieSearchResult } from '../s
 
 // ── Context types ──────────────────────────────────────────
 
-interface GuestStoreContextValue {
+export interface GuestStoreContextValue {
   // Watchlist
   watchlist: WatchlistItem[];
   addToWatchlist: (media: MediaSearchResult | MovieSearchResult | TvSeriesDetails, mediaType: 'movie' | 'tv') => void;
@@ -34,17 +34,8 @@ interface GuestStoreContextValue {
   clearHistory: () => void;
 }
 
-const GuestStoreContext = createContext<GuestStoreContextValue | null>(null);
-
-// ── Hook ───────────────────────────────────────────────────
-
-export function useGuestStore(): GuestStoreContextValue {
-  const ctx = useContext(GuestStoreContext);
-  if (!ctx) {
-    throw new Error('useGuestStore must be used within a GuestStoreProvider');
-  }
-  return ctx;
-}
+// eslint-disable-next-line react-refresh/only-export-components
+export const GuestStoreContext = createContext<GuestStoreContextValue | null>(null);
 
 // ── Provider ───────────────────────────────────────────────
 

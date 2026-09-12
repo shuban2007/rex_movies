@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -16,16 +16,13 @@ interface PWAContextValue {
   installApp: () => Promise<void>;
 }
 
-const PWAContext = createContext<PWAContextValue>({
+// eslint-disable-next-line react-refresh/only-export-components
+export const PWAContext = createContext<PWAContextValue>({
   isInstallSupported: false,
   isInstalled: false,
   isIOS: false,
   installApp: async () => {},
 });
-
-export function usePWA() {
-  return useContext(PWAContext);
-}
 
 function getIsStandalone(): boolean {
   // Check standard display-mode media query
@@ -42,12 +39,10 @@ function getIsIOS(): boolean {
 
 export function PWAProvider({ children }: { children: ReactNode }) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(() => getIsStandalone());
   const [isIOS] = useState(() => getIsIOS());
 
   useEffect(() => {
-    // Check if already running as installed PWA
-    setIsInstalled(getIsStandalone());
 
     // Listen for the browser's install prompt event
     const handleBeforeInstall = (e: Event) => {

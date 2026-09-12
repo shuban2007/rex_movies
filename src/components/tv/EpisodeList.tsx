@@ -89,7 +89,7 @@ export function EpisodeList({
                 onClick={() => onEpisodeSelect(episode.episodeNumber, episode.title)}
                 title={episode.title}
               >
-                <span className="ep-number">{episode.episodeNumber}.</span>
+                <span className="ep-number">{episode.episodeNumber}</span>
                 <span className="ep-mobile-info">
                   <span className="ep-title">{episode.title}</span>
                   {episode.airDate && (

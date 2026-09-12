@@ -52,6 +52,8 @@
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
   scrollbar-width: none;      /* Firefox */
+  padding-top: 4px;
+  padding-bottom: 12px;
 }
 
 .episode-grid-scroll::-webkit-scrollbar {
@@ -78,25 +80,30 @@
   flex-shrink: 0;
   width: 44px;
   height: 44px;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  color: rgba(240, 240, 245, 0.8);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .episode-page-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
 }
 
 .episode-page-btn.active {
-  background: rgba(139, 124, 246, 0.15);
+  background: linear-gradient(135deg, rgba(139, 124, 246, 0.25) 0%, rgba(139, 124, 246, 0.1) 100%);
   border-color: #8b7cf6;
   color: #fff;
+  box-shadow: 0 0 15px rgba(139, 124, 246, 0.2), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 /* ── Active Episode Info Bar ── */
@@ -200,15 +207,20 @@
     min-width: 0;
     max-width: 100%;
     box-sizing: border-box;
+    box-shadow: none;
+    transform: none;
   }
 
   .episode-page-btn:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.06);
+    transform: none;
+    box-shadow: none;
   }
 
   .episode-page-btn.active {
-    background: rgba(139, 124, 246, 0.1);
+    background: linear-gradient(90deg, rgba(139, 124, 246, 0.15) 0%, rgba(139, 124, 246, 0.05) 100%);
     border-color: rgba(139, 124, 246, 0.3);
+    box-shadow: none;
   }
 
   /* Show the number as a fixed-width column */

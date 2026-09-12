@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useGuestStore } from '../context/GuestStoreContext';
+import { useGuestStore } from '../hooks/useGuestStore';
 import { MovieCard } from '../components/movies/MovieCard';
 import './WatchlistPage.css';
 

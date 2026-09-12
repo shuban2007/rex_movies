@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { getEnabledProviders, getDefaultProvider } from '../../config/providers';
+import { getEnabledProviders, getDefaultProvider, getMovieProviderUrl, getTVProviderUrl } from '../../services/playback/provider';
 import { CustomSelect } from '../ui/CustomSelect';
 import './VideoPlayer.css';
 
@@ -8,6 +8,8 @@ export type PlayerState = 'empty' | 'loading' | 'loaded' | 'error';
 interface VideoPlayerProps {
   /** The TMDB ID to load, or null for the empty state. */
   tmdbId: number | null;
+  /** The IMDb ID if available */
+  imdbId?: string | null;
   /** Optional movie title for display/accessibility. */
   title?: string;
   /** Called when the user clicks Retry after an error. */
@@ -26,22 +28,33 @@ interface VideoPlayerProps {
   onEpisodeEnd?: () => void;
 }
 
-export function VideoPlayer({ tmdbId, title, onRetry, mediaType = 'movie', season, episode, onEpisodeEnd }: VideoPlayerProps) {
+export function VideoPlayer({ tmdbId, imdbId, title, onRetry, mediaType = 'movie', season, episode, onEpisodeEnd }: VideoPlayerProps) {
   const [state, setState] = useState<PlayerState>('empty');
   const [selectedProviderId, setSelectedProviderId] = useState<string>('');
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const loadTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const fallbackCountRef = useRef(0);
 
   const availableProviders = getEnabledProviders(mediaType);
 
-  // Auto-select default provider if none selected or selected is disabled
+  // Auto-select provider from localStorage, or default if not available
   useEffect(() => {
     if (availableProviders.length > 0) {
       if (!selectedProviderId || !availableProviders.find(p => p.id === selectedProviderId)) {
-        const defaultProvider = getDefaultProvider(mediaType);
-        setSelectedProviderId(defaultProvider ? defaultProvider.id : availableProviders[0].id);
+        const savedProviderId = localStorage.getItem('rex_preferred_provider');
+        const savedProvider = availableProviders.find(p => p.id === savedProviderId);
+        
+        if (savedProvider) {
+          // eslint-disable-next-line react/set-state-in-effect
+          setSelectedProviderId(savedProvider.id);
+        } else {
+          const defaultProvider = getDefaultProvider(mediaType);
+          // eslint-disable-next-line react/set-state-in-effect
+          setSelectedProviderId(defaultProvider ? defaultProvider.id : availableProviders[0].id);
+        }
       }
     } else {
+      // eslint-disable-next-line react/set-state-in-effect
       setSelectedProviderId('');
     }
   }, [mediaType, availableProviders, selectedProviderId]);
@@ -53,10 +66,15 @@ export function VideoPlayer({ tmdbId, title, onRetry, mediaType = 'movie', seaso
     }
 
     if (!tmdbId || !selectedProviderId) {
+      // eslint-disable-next-line react/set-state-in-effect
       setState('empty');
       return;
     }
 
+    // Only reset fallback count if this wasn't an automatic fallback (which retains the same tmdbId but changes selectedProviderId)
+    // Actually, to safely manage fallback, we just let fallback logic increment it and manual changes/title changes reset it.
+    // We'll reset it in the manual onChange handler and when tmdbId changes.
+    // eslint-disable-next-line react/set-state-in-effect
     setState('loading');
 
     // Safety timeout: if the iframe hasn't signaled "load" in 30s,
@@ -69,6 +87,11 @@ export function VideoPlayer({ tmdbId, title, onRetry, mediaType = 'movie', seaso
       if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
     };
   }, [tmdbId, selectedProviderId, season, episode]);
+
+  // Reset fallback count when the title/episode actually changes
+  useEffect(() => {
+    fallbackCountRef.current = 0;
+  }, [tmdbId, season, episode]);
 
   const handleIframeLoad = useCallback(() => {
     if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
@@ -100,17 +123,28 @@ export function VideoPlayer({ tmdbId, title, onRetry, mediaType = 'movie', seaso
     setState('error');
     
     // Fallback logic
-    const currentIndex = availableProviders.findIndex(p => p.id === selectedProviderId);
-    if (currentIndex >= 0 && currentIndex < availableProviders.length - 1) {
-      // Auto-fallback to next provider if available
-      setTimeout(() => setSelectedProviderId(availableProviders[currentIndex + 1].id), 2000);
+    if (fallbackCountRef.current < 3) {
+      const currentIndex = availableProviders.findIndex(p => p.id === selectedProviderId);
+      if (currentIndex >= 0 && currentIndex < availableProviders.length - 1) {
+        fallbackCountRef.current += 1;
+        // Auto-fallback to next provider if available
+        setTimeout(() => setSelectedProviderId(availableProviders[currentIndex + 1].id), 2000);
+      }
     }
   }, [selectedProviderId, availableProviders]);
 
   const selectedProvider = availableProviders.find(p => p.id === selectedProviderId);
   const embedUrl = (tmdbId && selectedProvider) 
-    ? selectedProvider.buildUrl({ tmdbId, season, episode }) 
+    ? (mediaType === 'movie' 
+        ? getMovieProviderUrl(selectedProvider, { tmdbId, imdbId })
+        : getTVProviderUrl(selectedProvider, { tmdbId, imdbId }, season || 1, episode || 1))
     : null;
+
+  const handleProviderChange = (val: string) => {
+    fallbackCountRef.current = 0; // Reset on manual change
+    localStorage.setItem('rex_preferred_provider', val);
+    setSelectedProviderId(val);
+  };
 
   return (
     <section className="video-player" aria-label="Video player">
@@ -131,7 +165,7 @@ export function VideoPlayer({ tmdbId, title, onRetry, mediaType = 'movie', seaso
               <CustomSelect
                 id="provider-select"
                 value={selectedProviderId}
-                onChange={(val) => setSelectedProviderId(val as string)}
+                onChange={(val) => handleProviderChange(val as string)}
                 options={availableProviders.map(p => ({ value: p.id, label: p.name }))}
                 ariaLabel="Select streaming server"
               />

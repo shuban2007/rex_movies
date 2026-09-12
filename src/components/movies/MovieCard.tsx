@@ -1,8 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
 import type { MovieSearchResult, MediaSearchResult, TvSeriesDetails } from '../../services/tmdb';
 import { getImageUrl } from '../../utils/imageUrl';
-import { useGuestStore } from '../../context/GuestStoreContext';
+import { useGuestStore } from '../../hooks/useGuestStore';
 import './MovieCard.css';
 
 interface MovieCardProps {
@@ -12,14 +11,12 @@ interface MovieCardProps {
 export function MovieCard({ movie }: MovieCardProps) {
   const navigate = useNavigate();
   const { isInWatchlist, addToWatchlist, removeFromWatchlist } = useGuestStore();
-  const [inWatchlist, setInWatchlist] = useState(false);
 
   // Infer media type safely
   const mediaType = (movie as MediaSearchResult).mediaType || 'movie';
 
-  useEffect(() => {
-    setInWatchlist(isInWatchlist(movie.id, mediaType));
-  }, [movie.id, mediaType, isInWatchlist]);
+  // Derive synchronously from context to avoid cascade renders
+  const inWatchlist = isInWatchlist(movie.id, mediaType);
 
   const handleCardClick = () => {
     navigate(`/watch/${mediaType}/${movie.id}`);

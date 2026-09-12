@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { usePWA } from '../../context/PWAContext';
+import { usePWA } from '../../hooks/usePWA';
 import './InstallButton.css';
 
 export function InstallButton() {

@@ -5,6 +5,7 @@ export interface MovieSearchResult {
   posterPath: string | null;
   backdropPath: string | null;
   overview: string;
+  imdbId?: string | null;
 }
 
 export interface MediaSearchResult {
