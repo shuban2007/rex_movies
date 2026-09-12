@@ -28,7 +28,7 @@ export function MovieCard({ movie }: MovieCardProps) {
     if (inWatchlist) {
       removeFromWatchlist(movie.id, mediaType);
     } else {
-      addToWatchlist(movie, mediaType);
+      addToWatchlist(movie.id, mediaType);
     }
   };
 

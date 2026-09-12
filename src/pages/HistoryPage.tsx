@@ -1,11 +1,73 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useGuestStore } from '../hooks/useGuestStore';
 import { MovieCard } from '../components/movies/MovieCard';
+import { getMovieDetails, getTvDetails, type MediaSearchResult } from '../services/tmdb';
 import './HistoryPage.css';
 import './WatchlistPage.css'; // Reusing collection grid styles
 
 export function HistoryPage() {
   const { history, clearHistory } = useGuestStore();
+  const [items, setItems] = useState<MediaSearchResult[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    
+    async function fetchMetadata() {
+      if (history.length === 0) {
+        if (mounted) {
+          setItems([]);
+          setLoading(false);
+        }
+        return;
+      }
+      
+      setLoading(true);
+      try {
+        const results = await Promise.all(
+          history.map(async (item) => {
+            try {
+              const data = item.mediaType === 'tv' 
+                ? await getTvDetails(item.tmdbId) 
+                : await getMovieDetails(item.tmdbId);
+              
+              if (data) {
+                // Merge TMDB metadata with history state (season, episode)
+                return {
+                  ...data,
+                  mediaType: item.mediaType,
+                  // Hack to display season/episode in the MovieCard year slot
+                  year: item.mediaType === 'tv' && item.season != null
+                    ? `S${item.season} E${item.episode}`
+                    : data.year
+                } as MediaSearchResult;
+              }
+            } catch (err) {
+              console.error(`Failed to fetch ${item.mediaType} ${item.tmdbId}`, err);
+            }
+            return null;
+          })
+        );
+        
+        if (mounted) {
+          setItems(results.filter((res): res is MediaSearchResult => res !== null));
+        }
+      } catch (err) {
+        console.error('Failed to load history metadata', err);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchMetadata();
+    
+    return () => {
+      mounted = false;
+    };
+  }, [history]);
 
   const handleClear = () => {
     if (window.confirm('Are you sure you want to clear your watch history?')) {
@@ -29,7 +91,11 @@ export function HistoryPage() {
       </div>
 
       <div className="collection-content">
-        {history.length === 0 ? (
+        {loading ? (
+          <div className="collection-loading" style={{ textAlign: 'center', padding: '3rem', color: 'rgba(255,255,255,0.5)' }}>
+            Loading history...
+          </div>
+        ) : history.length === 0 ? (
           <div className="collection-empty">
             <div className="empty-icon">◷</div>
             <h2>No watch history yet.</h2>
@@ -40,22 +106,10 @@ export function HistoryPage() {
           </div>
         ) : (
           <div className="collection-grid">
-            {history.map((movie) => (
+            {items.map((movie) => (
               <MovieCard 
-                key={movie.id} 
-                movie={{
-                  id: movie.tmdb_id,
-                  mediaType: movie.media_type || 'movie',
-                  title: movie.media_type === 'tv' 
-                    ? `${movie.title}` 
-                    : movie.title,
-                  year: movie.media_type === 'tv' && movie.season_number != null
-                    ? `S${movie.season_number} E${movie.episode_number}${movie.episode_title ? ` - ${movie.episode_title}` : ''}`
-                    : movie.year,
-                  posterPath: movie.poster_path,
-                  backdropPath: movie.backdrop_path,
-                  overview: ''
-                } as any} 
+                key={`${movie.mediaType}_${movie.id}`} 
+                movie={movie} 
               />
             ))}
           </div>

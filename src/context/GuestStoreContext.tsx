@@ -2,34 +2,29 @@ import { createContext, useState, useEffect, useCallback, type ReactNode } from 
 import type { WatchlistItem, HistoryItem } from '../types/database';
 import { watchlistService } from '../services/watchlist';
 import { historyService } from '../services/history';
-import type { MediaSearchResult, TvSeriesDetails, MovieSearchResult } from '../services/tmdb';
 
 // ── Context types ──────────────────────────────────────────
 
 export interface GuestStoreContextValue {
   // Watchlist
   watchlist: WatchlistItem[];
-  addToWatchlist: (media: MediaSearchResult | MovieSearchResult | TvSeriesDetails, mediaType: 'movie' | 'tv') => void;
-  removeFromWatchlist: (tmdbId: number, mediaType?: string) => void;
-  isInWatchlist: (tmdbId: number, mediaType?: string) => boolean;
+  addToWatchlist: (id: number, type: 'movie' | 'tv') => void;
+  removeFromWatchlist: (id: number, type: 'movie' | 'tv') => void;
+  isInWatchlist: (id: number, type: 'movie' | 'tv') => boolean;
 
   // History
   history: HistoryItem[];
   recordProgress: (
-    media: MediaSearchResult | MovieSearchResult | TvSeriesDetails,
+    tmdbId: number,
     mediaType: 'movie' | 'tv',
-    seasonNumber?: number,
-    episodeNumber?: number,
-    episodeTitle?: string,
-    progressSeconds?: number
+    season?: number,
+    episode?: number
   ) => void;
   addOrUpdateHistory: (
-    media: MediaSearchResult | MovieSearchResult | TvSeriesDetails,
+    tmdbId: number,
     mediaType: 'movie' | 'tv',
-    seasonNumber?: number,
-    episodeNumber?: number,
-    episodeTitle?: string,
-    progressSeconds?: number
+    season?: number,
+    episode?: number
   ) => void;
   clearHistory: () => void;
 }
@@ -81,20 +76,19 @@ export function GuestStoreProvider({ children }: { children: ReactNode }) {
   // ── Watchlist actions ──
 
   const addToWatchlist = useCallback(
-    (media: MediaSearchResult | MovieSearchResult | TvSeriesDetails, mediaType: 'movie' | 'tv') => {
-      watchlistService.addMedia(media, mediaType);
-      // State is updated via the 'watchlist-updated' event listener above
+    (id: number, type: 'movie' | 'tv') => {
+      watchlistService.addToWatchlist(id, type);
     },
     []
   );
 
-  const removeFromWatchlist = useCallback((tmdbId: number, mediaType: string = 'movie') => {
-    watchlistService.removeMedia(tmdbId, mediaType);
+  const removeFromWatchlist = useCallback((id: number, type: 'movie' | 'tv') => {
+    watchlistService.removeFromWatchlist(id, type);
   }, []);
 
   const isInWatchlist = useCallback(
-    (tmdbId: number, mediaType: string = 'movie') => {
-      return watchlist.some(item => item.tmdb_id === tmdbId && item.media_type === mediaType);
+    (id: number, type: 'movie' | 'tv') => {
+      return watchlist.some((item) => item.id === id && item.type === type);
     },
     [watchlist]
   );
@@ -103,28 +97,24 @@ export function GuestStoreProvider({ children }: { children: ReactNode }) {
 
   const recordProgress = useCallback(
     (
-      media: MediaSearchResult | MovieSearchResult | TvSeriesDetails,
+      tmdbId: number,
       mediaType: 'movie' | 'tv',
-      seasonNumber?: number,
-      episodeNumber?: number,
-      episodeTitle?: string,
-      progressSeconds?: number
+      season?: number,
+      episode?: number
     ) => {
-      historyService.recordProgress(media, mediaType, seasonNumber, episodeNumber, episodeTitle, progressSeconds);
+      historyService.recordProgress(tmdbId, mediaType, season, episode);
     },
     []
   );
 
   const addOrUpdateHistory = useCallback(
     (
-      media: MediaSearchResult | MovieSearchResult | TvSeriesDetails,
+      tmdbId: number,
       mediaType: 'movie' | 'tv',
-      seasonNumber?: number,
-      episodeNumber?: number,
-      episodeTitle?: string,
-      progressSeconds?: number
+      season?: number,
+      episode?: number
     ) => {
-      historyService.addOrUpdateHistory(media, mediaType, seasonNumber, episodeNumber, episodeTitle, progressSeconds);
+      historyService.addOrUpdateHistory(tmdbId, mediaType, season, episode);
     },
     []
   );

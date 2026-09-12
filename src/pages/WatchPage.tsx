@@ -45,12 +45,11 @@ export function WatchPage() {
           
           if (data && 'seasons' in data && data.seasons.length > 0) {
             // Find most recent history for this TV show
-            const lastHistory = history.find(h => h.tmdb_id === numericId && h.media_type === 'tv');
+            const lastHistory = history.find(h => h.tmdbId === numericId && h.mediaType === 'tv');
             
-            if (lastHistory && lastHistory.season_number != null && lastHistory.episode_number != null) {
-              setActiveSeason(lastHistory.season_number);
-              setActiveEpisode(lastHistory.episode_number);
-              if (lastHistory.episode_title) setActiveEpisodeTitle(lastHistory.episode_title);
+            if (lastHistory && lastHistory.season != null && lastHistory.episode != null) {
+              setActiveSeason(lastHistory.season);
+              setActiveEpisode(lastHistory.episode);
             } else {
               const firstValidSeason = data.seasons.find(s => s.seasonNumber > 0) || data.seasons[0];
               setActiveSeason(firstValidSeason.seasonNumber);
@@ -117,12 +116,10 @@ export function WatchPage() {
 
     const saveProgress = () => {
       recordProgress(
-        media, 
+        media.id, 
         isTv ? 'tv' : 'movie', 
         isTv ? activeSeason : undefined, 
-        isTv ? activeEpisode : undefined, 
-        activeEpisodeTitle || undefined,
-        watchTimeSeconds.current
+        isTv ? activeEpisode : undefined
       );
     };
 
@@ -153,12 +150,10 @@ export function WatchPage() {
     
     // Save completed episode to history immediately
     addOrUpdateHistory(
-      media,
+      media.id,
       'tv',
       activeSeason,
-      activeEpisode,
-      activeEpisodeTitle || undefined,
-      watchTimeSeconds.current
+      activeEpisode
     );
 
     // Check if there's a next episode in current season
@@ -196,7 +191,7 @@ export function WatchPage() {
     // No more episodes — series complete
     setSeriesComplete(true);
     advancingRef.current = false;
-  }, [media, isTv, numericId, activeSeason, activeEpisode, activeEpisodeTitle, currentEpisodes, addOrUpdateHistory]);
+  }, [media, isTv, numericId, activeSeason, activeEpisode, currentEpisodes, addOrUpdateHistory]);
 
   // ── Handlers ──
 
@@ -206,7 +201,7 @@ export function WatchPage() {
     if (inWatchlist) {
       removeFromWatchlist(media.id, isTv ? 'tv' : 'movie');
     } else {
-      addToWatchlist(media, isTv ? 'tv' : 'movie');
+      addToWatchlist(media.id, isTv ? 'tv' : 'movie');
     }
   };
 

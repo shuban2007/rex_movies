@@ -19,7 +19,7 @@ export function HeroMovie({ movie }: HeroMovieProps) {
     if (inWatchlist) {
       removeFromWatchlist(movie.id, 'movie');
     } else {
-      addToWatchlist(movie, 'movie');
+      addToWatchlist(movie.id, 'movie');
     }
   };
 
