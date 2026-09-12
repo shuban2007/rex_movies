@@ -141,33 +141,6 @@ export const providers: Provider[] = [
     }
   },
   
-  // EMBEDMASTER
-  {
-    id: 'embedmaster-movie',
-    name: 'EmbedMaster',
-    mediaType: 'movie',
-    enabled: true,
-    hasAds: false,
-    supportsSandbox: true,
-    priority: 3,
-    buildUrl: ({ tmdbId, imdbId }) => {
-      const id = imdbId || `tmdb-${tmdbId}`;
-      return `https://embedmaster.link/movie/${id}?skin=onyx&welcome_page=off`;
-    }
-  },
-  {
-    id: 'embedmaster-tv',
-    name: 'EmbedMaster',
-    mediaType: 'tv',
-    enabled: true,
-    hasAds: false,
-    supportsSandbox: true,
-    priority: 3,
-    buildUrl: ({ tmdbId, season, episode, imdbId }) => {
-      const id = imdbId || `tmdb-${tmdbId}`;
-      return `https://embedmaster.link/tv/${id}/${season}/${episode}?skin=onyx&welcome_page=off`;
-    }
-  }
 ];
 
 /**
