@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { type MediaSearchResult } from '../../services/tmdb';
-import { getRecommendationsForTitle } from '../../services/recommendationEngine';
+// MediaSearchResult removed
+import { getRecommendations, type DiscoveryItem } from '../../services/discoveryEngine';
 import { MovieCard } from '../movies/MovieCard';
 import './RecommendationSection.css';
 
@@ -10,7 +10,7 @@ interface RecommendationSectionProps {
 }
 
 export function RecommendationSection({ tmdbId, mediaType }: RecommendationSectionProps) {
-  const [recommendations, setRecommendations] = useState<MediaSearchResult[]>([]);
+  const [recommendations, setRecommendations] = useState<DiscoveryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -22,7 +22,7 @@ export function RecommendationSection({ tmdbId, mediaType }: RecommendationSecti
     // eslint-disable-next-line react/set-state-in-effect
     setError(false);
 
-    getRecommendationsForTitle(tmdbId, mediaType)
+    getRecommendations(tmdbId, mediaType)
       .then(results => {
         setRecommendations(results);
         setIsLoading(false);

@@ -173,16 +173,16 @@ function fetchWithCache<T>(
 
 // ── API Methods ──
 
-export async function searchMovies(query: string, signal?: AbortSignal): Promise<MovieSearchResult[]> {
+export async function searchMovies(query: string, page: number = 1, signal?: AbortSignal): Promise<MovieSearchResult[]> {
   if (!query.trim()) return [];
   const q = encodeURIComponent(query.trim());
-  return fetchWithCache(`searchMovies:${q}`, `/api/search-movies?q=${q}`, signal, true);
+  return fetchWithCache(`searchMovies:${q}:page${page}`, `/api/search-movies?q=${q}&page=${page}`, signal, true);
 }
 
-export async function searchMulti(query: string, signal?: AbortSignal): Promise<MediaSearchResult[]> {
+export async function searchMulti(query: string, page: number = 1, signal?: AbortSignal): Promise<MediaSearchResult[]> {
   if (!query.trim()) return [];
   const q = encodeURIComponent(query.trim());
-  return fetchWithCache(`searchMulti:${q}`, `/api/search-multi?q=${q}`, signal, true);
+  return fetchWithCache(`searchMulti:${q}:page${page}`, `/api/search-multi?q=${q}&page=${page}`, signal, true);
 }
 
 export async function getTrendingMovies(signal?: AbortSignal): Promise<MovieSearchResult[]> {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useGuestStore } from '../hooks/useGuestStore';
 import { MovieCard } from '../components/movies/MovieCard';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { getMovieDetails, getTvDetails, type MediaSearchResult } from '../services/tmdb';
 import './HistoryPage.css';
 import './WatchlistPage.css'; // Reusing collection grid styles
@@ -12,6 +13,7 @@ export function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -72,11 +74,14 @@ export function HistoryPage() {
   }, [history]);
 
   const handleClear = () => {
-    if (window.confirm('Are you sure you want to clear your entire watch history?')) {
-      clearHistory();
-      setIsEditing(false);
-      setSelectedItems(new Set());
-    }
+    setIsClearModalOpen(true);
+  };
+
+  const confirmClearHistory = () => {
+    clearHistory();
+    setIsEditing(false);
+    setSelectedItems(new Set());
+    setIsClearModalOpen(false);
   };
 
   const toggleSelection = (tmdbId: number, mediaType: string) => {
@@ -196,6 +201,17 @@ export function HistoryPage() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={isClearModalOpen}
+        title="Clear Watch History?"
+        message="Are you sure you want to permanently remove your entire watch history?"
+        confirmLabel="Clear History"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={confirmClearHistory}
+        onCancel={() => setIsClearModalOpen(false)}
+      />
     </div>
   );
 }

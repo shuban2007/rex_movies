@@ -1,0 +1,115 @@
+.confirm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: modalOverlayFade 0.2s ease;
+}
+
+.confirm-modal-dialog {
+  background: var(--bg-color, #13131a);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  max-width: 400px;
+  width: 90%;
+  padding: 2rem;
+  outline: none;
+  animation: modalSlideUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.confirm-modal-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: rgba(240, 240, 245, 0.95);
+}
+
+.confirm-modal-desc {
+  margin: 0 0 2rem 0;
+  font-size: 1rem;
+  color: rgba(240, 240, 245, 0.6);
+  line-height: 1.5;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.confirm-modal-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.confirm-modal-btn.cancel-btn {
+  background: transparent;
+  color: rgba(240, 240, 245, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.confirm-modal-btn.cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.confirm-modal-btn.confirm-btn.danger {
+  background: rgba(229, 9, 20, 0.1);
+  color: #e50914;
+  border: 1px solid rgba(229, 9, 20, 0.4);
+}
+
+.confirm-modal-btn.confirm-btn.danger:hover {
+  background: rgba(229, 9, 20, 0.2);
+  border-color: #e50914;
+  color: #fff;
+  box-shadow: 0 0 15px rgba(229, 9, 20, 0.3);
+}
+
+.confirm-modal-btn.confirm-btn.primary {
+  background: rgba(147, 51, 234, 0.2);
+  color: #d8b4fe;
+  border: 1px solid rgba(147, 51, 234, 0.4);
+}
+
+.confirm-modal-btn.confirm-btn.primary:hover {
+  background: rgba(147, 51, 234, 0.3);
+  border-color: #a855f7;
+  color: #fff;
+  box-shadow: 0 0 15px rgba(147, 51, 234, 0.3);
+}
+
+@keyframes modalOverlayFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 480px) {
+  .confirm-modal-dialog {
+    padding: 1.5rem;
+  }
+  
+  .confirm-modal-actions {
+    flex-direction: column-reverse;
+  }
+  
+  .confirm-modal-btn {
+    width: 100%;
+  }
+}

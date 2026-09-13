@@ -72,7 +72,7 @@
 
 .history-item-wrapper {
   position: relative;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .history-item-wrapper.editing {
@@ -81,14 +81,24 @@
 
 .history-item-wrapper.editing .movie-card {
   pointer-events: none;
-  opacity: 0.8;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.history-item-wrapper.editing:hover .movie-card {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+.history-item-wrapper.selected {
+  transform: scale(0.92);
 }
 
 .history-item-wrapper.selected .movie-card {
   opacity: 1;
-  outline: 2px solid #e50914;
-  outline-offset: -2px;
-  border-radius: 12px;
+}
+
+.history-item-wrapper.selected .movie-card-poster-wrapper {
+  box-shadow: 0 0 0 3px #e50914, 0 8px 30px rgba(229, 9, 20, 0.3);
 }
 
 .history-edit-overlay {

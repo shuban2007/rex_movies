@@ -1,10 +1,7 @@
 import { useState, useRef, useMemo } from 'react';
 import type { MediaSearchResult } from '../../services/tmdb';
-import { 
-  getPreferenceRecommendations, 
-  getRandomRecommendation,
-} from '../../services/watchRandom';
-import type { ContentType } from '../../services/watchRandom';
+import { getRandomContent } from '../../services/discoveryEngine';
+import type { ContentType } from '../../services/discoveryEngine';
 import { getCompatibleMoods } from '../../config/watchRandomCompatibility';
 import {
   WATCH_RANDOM_MOVIE_GENRES,
@@ -75,8 +72,8 @@ export function WatchRandomModal({ onClose }: WatchRandomModalProps) {
     setStep('loading');
     setError(false);
     
-    const result = await getRandomRecommendation(t, seenIdsRef.current);
-    if (result) {
+    const result = await getRandomContent(t, undefined, seenIdsRef.current);
+    if (result && !Array.isArray(result)) {
       seenIdsRef.current.add(result.id);
       setResults([result]);
     } else {
@@ -91,16 +88,16 @@ export function WatchRandomModal({ onClose }: WatchRandomModalProps) {
 
     if (!type) return;
 
-    const fetched = await getPreferenceRecommendations(type, {
+    const fetched = await getRandomContent(type, {
       genres: selectedGenres,
       era: selectedEra,
       rating: selectedRating,
       runtime: selectedRuntime,
       status: selectedStatus,
       mood: selectedMood
-    });
+    }, seenIdsRef.current);
     
-    if (fetched.length > 0) {
+    if (fetched && Array.isArray(fetched) && fetched.length > 0) {
       setResults(fetched);
       // If the user selected lots of things but we only got back popular stuff, it's a fallback.
       // We don't have a strict flag from the service yet, but we can assume success.

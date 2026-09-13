@@ -6,6 +6,7 @@ import { HomePage } from './pages/HomePage';
 import { WatchPage } from './pages/WatchPage';
 import { WatchlistPage } from './pages/WatchlistPage';
 import { HistoryPage } from './pages/HistoryPage';
+import { SearchResultsPage } from './pages/SearchResultsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { PrivacyPolicyPage, CookiePolicyPage, TermsConditionsPage, TermsOfUsePage } from './pages/LegalPages';
 import { AdBlockerPopup, AdBlockerBanner } from './components/AdBlockerNotice';
@@ -26,10 +27,9 @@ function MobileBottomNav() {
         </svg>
         <span>Home</span>
       </Link>
-      <Link to="/" className={`mobile-nav-item`} onClick={(e) => {
-        e.preventDefault();
-        const searchInput = document.querySelector('.navbar-search-input') as HTMLInputElement;
-        if (searchInput) { searchInput.focus(); searchInput.scrollIntoView({ behavior: 'smooth' }); }
+      <Link to="/search" className={`mobile-nav-item ${isActive('/search') ? 'active' : ''}`} onClick={() => {
+        // Just let it navigate normally, or close menu if needed.
+        // It navigates to /search
       }}>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="11" cy="11" r="8" />
@@ -71,6 +71,7 @@ export default function App() {
             <Route path="/watch/:mediaType/:tmdbId" element={<WatchPage />} />
             <Route path="/watchlist" element={<WatchlistPage />} />
             <Route path="/history" element={<HistoryPage />} />
+            <Route path="/search" element={<SearchResultsPage />} />
             <Route path="/privacy" element={<PrivacyPolicyPage />} />
             <Route path="/cookies" element={<CookiePolicyPage />} />
             <Route path="/terms" element={<TermsConditionsPage />} />

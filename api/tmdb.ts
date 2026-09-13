@@ -145,11 +145,12 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       return;
     }
     
+    const page = url.searchParams.get('page') || '1';
     const params = new URLSearchParams({
       query,
       include_adult: 'false',
       language: 'en-US',
-      page: '1'
+      page
     });
     return handleTmdbRequest('/search/movie', params);
   }
@@ -173,11 +174,12 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
     
     try {
+      const page = url.searchParams.get('page') || '1';
       const params = new URLSearchParams({
         query,
         include_adult: 'false',
         language: 'en-US',
-        page: '1'
+        page
       });
       const tmdbUrl = `https://api.tmdb.org/3/search/multi?${params.toString()}`;
       
@@ -194,7 +196,6 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       
       const results = (data.results || [])
         .filter((item: any) => item.media_type === 'movie' || item.media_type === 'tv')
-        .slice(0, 20)
         .map((item: any) => ({
           id: item.id,
           mediaType: item.media_type,

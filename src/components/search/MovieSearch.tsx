@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, type FormEvent, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { advancedSearch } from '../../services/search';
-import { SearchError, type MediaSearchResult } from '../../services/tmdb';
+import { searchContent, type DiscoveryItem } from '../../services/discoveryEngine';
+import { SearchError } from '../../services/tmdb';
 import { getImageUrl } from '../../utils/imageUrl';
 import './MovieSearch.css';
 
@@ -9,7 +9,7 @@ export function MovieSearch() {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
-  const [results, setResults] = useState<MediaSearchResult[]>([]);
+  const [results, setResults] = useState<DiscoveryItem[]>([]);
   const [didYouMean, setDidYouMean] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -48,7 +48,7 @@ export function MovieSearch() {
     setDidYouMean(null);
 
     try {
-      const searchRes = await advancedSearch(trimmed, controller.signal);
+      const searchRes = await searchContent(trimmed, { signal: controller.signal });
 
       if (!controller.signal.aborted) {
         setResults(searchRes.results);
@@ -70,15 +70,21 @@ export function MovieSearch() {
 
   const handleSubmit = useCallback((e?: FormEvent) => {
     e?.preventDefault();
-    executeSearch(query);
-  }, [query, executeSearch]);
+    if (query.trim()) {
+      setShowDropdown(false);
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+    }
+  }, [query, navigate]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      executeSearch(query);
+      if (query.trim()) {
+        setShowDropdown(false);
+        navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+      }
     }
-  }, [query, executeSearch]);
+  }, [query, navigate]);
 
   const handleClear = useCallback(() => {
     abortRef.current?.abort();
@@ -200,6 +206,17 @@ export function MovieSearch() {
                   );
                 })}
               </ul>
+              {results.length > 0 && (
+                <div 
+                  className="navbar-search-view-all" 
+                  onClick={() => {
+                    setShowDropdown(false);
+                    navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+                  }}
+                >
+                  View all results for "{query.trim()}"
+                </div>
+              )}
             </>
           ) : (
             <div className="navbar-search-message">No results found.</div>
