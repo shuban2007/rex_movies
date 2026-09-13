@@ -360,7 +360,7 @@ export function WatchPage() {
         )}
 
         <div className="recommendations-container">
-          <RecommendationSection tmdbId={numericId} />
+          <RecommendationSection tmdbId={numericId} mediaType={isTv ? 'tv' : 'movie'} />
         </div>
       </div>
     </div>

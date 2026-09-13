@@ -6,6 +6,15 @@ export interface MovieSearchResult {
   backdropPath: string | null;
   overview: string;
   imdbId?: string | null;
+  genres?: { id: number; name: string }[];
+  originalLanguage?: string;
+  productionCountries?: string[];
+  belongsToCollection?: any;
+  keywords?: { id: number; name: string }[];
+  recommendations?: any[];
+  similar?: any[];
+  voteAverage?: number;
+  popularity?: number;
 }
 
 export interface MediaSearchResult {
@@ -16,6 +25,10 @@ export interface MediaSearchResult {
   posterPath: string | null;
   backdropPath: string | null;
   overview: string;
+  genreIds?: number[];
+  originalLanguage?: string;
+  voteAverage?: number;
+  popularity?: number;
 }
 
 export interface TvSeason {
@@ -184,9 +197,7 @@ export async function getTopRatedMovies(signal?: AbortSignal): Promise<MovieSear
   return fetchWithCache('topRatedMovies', '/api/top-rated-movies', signal, true);
 }
 
-export async function getRecommendations(tmdbId: number, signal?: AbortSignal): Promise<MovieSearchResult[]> {
-  return fetchWithCache(`recommendations:${tmdbId}`, `/api/recommendations/${tmdbId}`, signal, true);
-}
+
 
 export async function getHomeSection(
   config: import('../config/homeSections').HomeSectionConfig,

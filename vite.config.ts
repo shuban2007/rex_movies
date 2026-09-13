@@ -207,6 +207,10 @@ const apiPlugin = () => ({
               posterPath: item.poster_path || null,
               backdropPath: item.backdrop_path || null,
               overview: item.overview || '',
+              genreIds: item.genre_ids || [],
+              originalLanguage: item.original_language || '',
+              voteAverage: item.vote_average || 0,
+              popularity: item.popularity || 0,
             }));
             
           res.statusCode = 200;
@@ -238,7 +242,7 @@ const apiPlugin = () => ({
         
         // Custom handler for single movie details because TMDB returns a different object shape than lists
         try {
-          const tmdbUrl = `https://api.tmdb.org/3/movie/${id}?language=en-US&append_to_response=external_ids`;
+          const tmdbUrl = `https://api.tmdb.org/3/movie/${id}?language=en-US&append_to_response=external_ids,keywords,recommendations,similar`;
           const tmdbRes = await fetch(tmdbUrl, {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -257,6 +261,15 @@ const apiPlugin = () => ({
             backdropPath: movie.backdrop_path || null,
             overview: movie.overview || '',
             imdbId: movie.external_ids?.imdb_id || movie.imdb_id || null,
+            genres: movie.genres || [],
+            originalLanguage: movie.original_language || '',
+            productionCountries: (movie.production_countries || []).map((c: any) => c.iso_3166_1),
+            belongsToCollection: movie.belongs_to_collection || null,
+            keywords: movie.keywords?.keywords || [],
+            recommendations: movie.recommendations?.results || [],
+            similar: movie.similar?.results || [],
+            voteAverage: movie.vote_average || 0,
+            popularity: movie.popularity || 0,
           };
           
           res.statusCode = 200;
@@ -267,14 +280,7 @@ const apiPlugin = () => ({
         }
       }
 
-      if (pathname.startsWith('/api/recommendations/')) {
-        const id = pathname.split('/').pop();
-        if (!id || isNaN(Number(id))) {
-          res.statusCode = 400;
-          return res.end(JSON.stringify({ error: { code: 'INVALID_ID', message: 'Valid movie ID required.' } }));
-        }
-        return handleTmdbRequest(`/movie/${id}/recommendations`, new URLSearchParams({ language: 'en-US', page: '1' }));
-      }
+
 
       if (pathname.startsWith('/api/tv/') && !pathname.includes('/season/')) {
         const id = pathname.split('/').pop();
@@ -284,7 +290,7 @@ const apiPlugin = () => ({
         }
         
         try {
-          const tmdbUrl = `https://api.tmdb.org/3/tv/${id}?language=en-US&append_to_response=external_ids`;
+          const tmdbUrl = `https://api.tmdb.org/3/tv/${id}?language=en-US&append_to_response=external_ids,keywords,recommendations,similar`;
           const tmdbRes = await fetch(tmdbUrl, {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -303,6 +309,14 @@ const apiPlugin = () => ({
             backdropPath: series.backdrop_path || null,
             overview: series.overview || '',
             imdbId: series.external_ids?.imdb_id || null,
+            genres: series.genres || [],
+            originalLanguage: series.original_language || '',
+            productionCountries: (series.production_countries || []).map((c: any) => c.iso_3166_1),
+            keywords: series.keywords?.results || [],
+            recommendations: series.recommendations?.results || [],
+            similar: series.similar?.results || [],
+            voteAverage: series.vote_average || 0,
+            popularity: series.popularity || 0,
             seasons: (series.seasons || []).map((s: any) => ({
               seasonNumber: s.season_number,
               name: s.name,

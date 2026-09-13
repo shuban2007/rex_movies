@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
-import { getRecommendations, type MovieSearchResult } from '../../services/tmdb';
+import { type MediaSearchResult } from '../../services/tmdb';
+import { getRecommendationsForTitle } from '../../services/recommendationEngine';
 import { MovieCard } from '../movies/MovieCard';
 import './RecommendationSection.css';
 
 interface RecommendationSectionProps {
   tmdbId: number;
+  mediaType: 'movie' | 'tv';
 }
 
-export function RecommendationSection({ tmdbId }: RecommendationSectionProps) {
-  const [recommendations, setRecommendations] = useState<MovieSearchResult[]>([]);
+export function RecommendationSection({ tmdbId, mediaType }: RecommendationSectionProps) {
+  const [recommendations, setRecommendations] = useState<MediaSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -20,7 +22,7 @@ export function RecommendationSection({ tmdbId }: RecommendationSectionProps) {
     // eslint-disable-next-line react/set-state-in-effect
     setError(false);
 
-    getRecommendations(tmdbId, controller.signal)
+    getRecommendationsForTitle(tmdbId, mediaType)
       .then(results => {
         setRecommendations(results);
         setIsLoading(false);
@@ -34,7 +36,7 @@ export function RecommendationSection({ tmdbId }: RecommendationSectionProps) {
       });
 
     return () => controller.abort();
-  }, [tmdbId]);
+  }, [tmdbId, mediaType]);
 
   if (error || (!isLoading && recommendations.length === 0)) {
     return null; // Gracefully degrade if unavailable or empty

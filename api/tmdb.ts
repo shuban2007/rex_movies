@@ -74,6 +74,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           posterPath: item.poster_path || null,
           backdropPath: item.backdrop_path || null,
           overview: item.overview || '',
+          genreIds: item.genre_ids || [],
+          originalLanguage: item.original_language || '',
+          voteAverage: item.vote_average || 0,
+          popularity: item.popularity || 0,
         };
       });
 
@@ -201,6 +205,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           posterPath: item.poster_path || null,
           backdropPath: item.backdrop_path || null,
           overview: item.overview || '',
+          genreIds: item.genre_ids || [],
+          originalLanguage: item.original_language || '',
+          voteAverage: item.vote_average || 0,
+          popularity: item.popularity || 0,
         }));
         
       res.statusCode = 200;
@@ -234,7 +242,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
     
     try {
-      const tmdbUrl = `https://api.tmdb.org/3/movie/${id}?language=en-US&append_to_response=external_ids`;
+      const tmdbUrl = `https://api.tmdb.org/3/movie/${id}?language=en-US&append_to_response=external_ids,keywords,recommendations,similar`;
       const tmdbRes = await fetch(tmdbUrl, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -253,6 +261,15 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         backdropPath: movie.backdrop_path || null,
         overview: movie.overview || '',
         imdbId: movie.external_ids?.imdb_id || movie.imdb_id || null,
+        genres: movie.genres || [],
+        originalLanguage: movie.original_language || '',
+        productionCountries: (movie.production_countries || []).map((c: any) => c.iso_3166_1),
+        belongsToCollection: movie.belongs_to_collection || null,
+        keywords: movie.keywords?.keywords || [],
+        recommendations: movie.recommendations?.results || [],
+        similar: movie.similar?.results || [],
+        voteAverage: movie.vote_average || 0,
+        popularity: movie.popularity || 0,
       };
       
       res.statusCode = 200;
@@ -261,74 +278,6 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     } catch {
       res.statusCode = 500;
       res.end(JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch movie details.' } }));
-      return;
-    }
-  }
-
-  if (pathname.startsWith('/api/recommendations/')) {
-    const id = pathname.split('/').pop();
-    if (!id || isNaN(Number(id))) {
-      res.statusCode = 400;
-      res.end(JSON.stringify({ error: { code: 'INVALID_ID', message: 'Valid movie ID required.' } }));
-      return;
-    }
-
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10_000);
-      
-      const fetchPage = async (endpoint: string) => {
-        const url = `https://api.tmdb.org/3${endpoint}?language=en-US&page=1`;
-        const res = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'accept': 'application/json',
-          },
-          signal: controller.signal,
-        });
-        if (!res.ok) return [];
-        const data = await res.json() as any;
-        return data.results || [];
-      };
-
-      try {
-        const [recs, similar] = await Promise.all([
-          fetchPage(`/movie/${id}/recommendations`),
-          fetchPage(`/movie/${id}/similar`)
-        ]);
-
-        const allResults = [...recs, ...similar];
-        const uniqueMovies = new Map();
-        
-        for (const movie of allResults) {
-          if (movie.id.toString() !== id && !uniqueMovies.has(movie.id)) {
-            uniqueMovies.set(movie.id, {
-              id: movie.id,
-              title: movie.title,
-              year: movie.release_date ? movie.release_date.split('-')[0] : null,
-              posterPath: movie.poster_path || null,
-              backdropPath: movie.backdrop_path || null,
-              overview: movie.overview || '',
-            });
-          }
-        }
-        
-        const results = Array.from(uniqueMovies.values()).slice(0, 30);
-        
-        res.statusCode = 200;
-        res.end(JSON.stringify({ results }));
-      } finally {
-        clearTimeout(timeout);
-      }
-      return;
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
-        res.statusCode = 504;
-        res.end(JSON.stringify({ error: { code: 'TMDB_TIMEOUT', message: 'TMDB took too long.' } }));
-        return;
-      }
-      res.statusCode = 500;
-      res.end(JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch recommendations.' } }));
       return;
     }
   }
@@ -342,7 +291,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
     
     try {
-      const tmdbUrl = `https://api.tmdb.org/3/tv/${id}?language=en-US&append_to_response=external_ids`;
+      const tmdbUrl = `https://api.tmdb.org/3/tv/${id}?language=en-US&append_to_response=external_ids,keywords,recommendations,similar`;
       const tmdbRes = await fetch(tmdbUrl, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -361,6 +310,14 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         backdropPath: series.backdrop_path || null,
         overview: series.overview || '',
         imdbId: series.external_ids?.imdb_id || null,
+        genres: series.genres || [],
+        originalLanguage: series.original_language || '',
+        productionCountries: (series.production_countries || []).map((c: any) => c.iso_3166_1),
+        keywords: series.keywords?.results || [],
+        recommendations: series.recommendations?.results || [],
+        similar: series.similar?.results || [],
+        voteAverage: series.vote_average || 0,
+        popularity: series.popularity || 0,
         seasons: (series.seasons || []).map((s: any) => ({
           seasonNumber: s.season_number,
           name: s.name,

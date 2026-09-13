@@ -7,6 +7,7 @@ import {
   WATCH_RANDOM_TV_STATUS,
   WATCH_RANDOM_MOVIE_RUNTIMES
 } from '../config/watchRandomConfig';
+import { classifyContent } from './recommendationEngine';
 
 export type ContentType = 'movie' | 'tv' | 'anime';
 
@@ -58,11 +59,18 @@ export async function getRandomRecommendation(
       });
 
       // Filter for quality and un-seen
-      const validResults = results.filter(item => 
-        item.posterPath && 
-        item.title && 
-        !seenIds.has(item.id)
-      );
+      const validResults = results.filter(item => {
+        if (!item.posterPath || !item.title || seenIds.has(item.id)) return false;
+        
+        // Enforce Content Intelligence Rules
+        const meta = classifyContent(item);
+        if (type === 'anime' && meta.isAnime !== 'true') return false;
+        if (type !== 'anime' && meta.isAnime === 'true') return false;
+        if (type === 'movie' && meta.mediaType !== 'movie') return false;
+        if (type === 'tv' && meta.mediaType !== 'tv') return false;
+        
+        return true;
+      });
 
       if (validResults.length > 0) {
         selectedItem = validResults[Math.floor(Math.random() * validResults.length)];
@@ -225,16 +233,24 @@ async function fetchWithConstraints(
     }
   }
 
-  try {
-    const fetchResults = await getHomeSection({
-      id: 'preferences',
-      title: 'Preferences',
-      mediaType,
-      endpoint,
-      params
-    });
-    return fetchResults.filter(item => item.posterPath && item.title);
-  } catch (err) {
+    try {
+      const fetchResults = await getHomeSection({
+        id: 'preferences',
+        title: 'Preferences',
+        mediaType,
+        endpoint,
+        params
+      });
+      return fetchResults.filter(item => {
+        if (!item.posterPath || !item.title) return false;
+        
+        const meta = classifyContent(item);
+        if (type === 'anime' && meta.isAnime !== 'true') return false;
+        if (type !== 'anime' && meta.isAnime === 'true') return false;
+        
+        return true;
+      });
+    } catch (err) {
     console.error('Fetch error:', err);
     return [];
   }
