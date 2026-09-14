@@ -41,4 +41,47 @@
     height: 48px;
     z-index: 190; /* Just below mobile-bottom-nav which is 200 */
   }
+  
+  .telegram-thought-cloud {
+    bottom: 60px;
+    font-size: 0.75rem;
+    padding: 8px 12px;
+  }
+}
+
+.telegram-thought-cloud {
+  position: absolute;
+  bottom: 70px; /* Right above the button */
+  right: 0;     /* Aligned to the right */
+  background: rgba(30, 30, 35, 0.95);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border-bottom-right-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none; /* Let clicks pass through */
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1);
+  animation: floatCloud 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  transform-origin: bottom right;
+}
+
+/* The little tail for the thought cloud */
+.telegram-thought-cloud::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  right: 12px;
+  width: 12px;
+  height: 12px;
+  background: rgba(30, 30, 35, 0.95);
+  border-right: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  transform: rotate(45deg);
+}
+
+@keyframes floatCloud {
+  0% { opacity: 0; transform: scale(0.8) translateY(10px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
 }

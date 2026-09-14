@@ -31,6 +31,7 @@ export function AdBlockerPopup() {
 
       if (active && (isBrave || isOpera || isVivaldi || isFirefox || isDuckDuckGo || isSamsung || isArc)) {
         setVisible(false);
+        window.dispatchEvent(new CustomEvent('adBlockerDismissed'));
       }
     };
     checkBrowser();
@@ -38,7 +39,10 @@ export function AdBlockerPopup() {
     return () => { active = false; };
   }, []);
 
-  const dismiss = useCallback(() => setVisible(false), []);
+  const dismiss = useCallback(() => {
+    setVisible(false);
+    window.dispatchEvent(new CustomEvent('adBlockerDismissed'));
+  }, []);
 
   // Auto-dismiss after 5 seconds
   useEffect(() => {
