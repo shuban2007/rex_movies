@@ -1,0 +1,44 @@
+.telegram-floating-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(42, 171, 238, 0.2);
+  z-index: 100; /* above footer and general content, below mobile nav and full screen player */
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.telegram-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.telegram-floating-btn:hover,
+.telegram-floating-btn:focus-visible {
+  transform: scale(1.08) translateY(-2px);
+  box-shadow: 0 6px 24px rgba(42, 171, 238, 0.4), 0 0 20px rgba(42, 171, 238, 0.3);
+  outline: none;
+}
+
+@media (max-width: 768px) {
+  .telegram-floating-btn {
+    /* Accounts for mobile navigation (nav is ~60px height + 16px gap) */
+    bottom: calc(72px + 16px + env(safe-area-inset-bottom));
+    right: 16px;
+    width: 48px;
+    height: 48px;
+    z-index: 190; /* Just below mobile-bottom-nav which is 200 */
+  }
+}

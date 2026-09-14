@@ -12,6 +12,7 @@ import { PrivacyPolicyPage, CookiePolicyPage, TermsConditionsPage, TermsOfUsePag
 import { AdBlockerPopup, AdBlockerBanner } from './components/AdBlockerNotice';
 import { PWAProvider } from './context/PWAContext';
 import { SplashScreen } from './components/ui/SplashScreen';
+import { TelegramButton } from './components/common/TelegramButton';
 import './App.css';
 
 function MobileBottomNav() {
@@ -82,6 +83,7 @@ export default function App() {
 
         <Footer />
         <MobileBottomNav />
+        <TelegramButton />
       </div>
     </PWAProvider>
   );
