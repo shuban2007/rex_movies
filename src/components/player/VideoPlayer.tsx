@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { getEnabledProviders, getDefaultProvider, getMovieProviderUrl, getTVProviderUrl } from '../../services/playback/provider';
+import { useProviderShield } from '../../services/providerShield';
 import { useGuestStore } from '../../hooks/useGuestStore';
 import { CustomSelect } from '../ui/CustomSelect';
 import './VideoPlayer.css';
@@ -38,6 +39,7 @@ export function VideoPlayer({ tmdbId, imdbId, title, onRetry, mediaType = 'movie
   const lastEvaluatedTmdbId = useRef<number | null>(null);
 
   const { history, saveProvider } = useGuestStore();
+  const { config: shieldConfig } = useProviderShield(selectedProviderId, iframeRef);
 
   const availableProviders = getEnabledProviders(mediaType);
 
@@ -310,9 +312,7 @@ export function VideoPlayer({ tmdbId, imdbId, title, onRetry, mediaType = 'movie
               className={`player-iframe ${state === 'loaded' ? 'player-iframe--visible' : ''}`}
               src={embedUrl}
               title={title ? `${title} — Rex.io Video Player` : 'Rex.io Video Player'}
-              {...(selectedProvider?.supportsSandbox ? {
-                sandbox: "allow-scripts allow-same-origin allow-presentation allow-forms"
-              } : {})}
+              {...(shieldConfig.supportsSandbox ? { sandbox: shieldConfig.sandboxFlags } : {})}
               allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
               allowFullScreen
               referrerPolicy="no-referrer"

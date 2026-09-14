@@ -14,7 +14,6 @@ export interface Provider {
   enabled: boolean;
   isDefault?: boolean;
   hasAds: boolean;
-  supportsSandbox: boolean;
   supportsPlaybackEvents?: boolean;
   priority: number;
   buildUrl: (params: ProviderParams) => string;
@@ -29,7 +28,6 @@ export const providers: Provider[] = [
     enabled: true,
     isDefault: true,
     hasAds: true,
-    supportsSandbox: true,
     supportsPlaybackEvents: true,
     priority: 1, // SET AS TOP PRIORITY
     buildUrl: ({ tmdbId }) => `https://cinesrc.st/embed/movie/${tmdbId}`,
@@ -40,19 +38,8 @@ export const providers: Provider[] = [
     mediaType: 'movie',
     enabled: true,
     hasAds: true,
-    supportsSandbox: true,
     priority: 4,
     buildUrl: ({ tmdbId }) => `https://vidsrc.sbs/embed/movie/${tmdbId}`,
-  },
-  {
-    id: 'vidcore-movie',
-    name: 'VidCore',
-    mediaType: 'movie',
-    enabled: true,
-    hasAds: true,
-    supportsSandbox: true,
-    priority: 5,
-    buildUrl: ({ tmdbId }) => `https://vidcore.org/embed/movie/${tmdbId}`,
   },
   {
     id: 'filmu-movie',
@@ -60,7 +47,6 @@ export const providers: Provider[] = [
     mediaType: 'movie',
     enabled: true,
     hasAds: true,
-    supportsSandbox: false,
     priority: 6,
     buildUrl: ({ tmdbId }) => `https://embed.filmu.in/movie/${tmdbId}`,
   },
@@ -73,7 +59,6 @@ export const providers: Provider[] = [
     enabled: true,
     isDefault: true,
     hasAds: true,
-    supportsSandbox: true,
     supportsPlaybackEvents: true,
     priority: 1, // SET AS TOP PRIORITY
     buildUrl: ({ tmdbId, season, episode }) => `https://cinesrc.st/embed/tv/${tmdbId}?s=${season}&e=${episode}`,
@@ -84,19 +69,8 @@ export const providers: Provider[] = [
     mediaType: 'tv',
     enabled: true,
     hasAds: true,
-    supportsSandbox: true,
     priority: 4,
     buildUrl: ({ tmdbId, season, episode }) => `https://vidsrc.sbs/embed/tv/${tmdbId}/${season}/${episode}`,
-  },
-  {
-    id: 'vidcore-tv',
-    name: 'VidCore',
-    mediaType: 'tv',
-    enabled: true,
-    hasAds: true,
-    supportsSandbox: true,
-    priority: 5,
-    buildUrl: ({ tmdbId, season, episode }) => `https://vidcore.org/embed/tv/${tmdbId}/${season}/${episode}`,
   },
   {
     id: 'filmu-tv',
@@ -104,7 +78,6 @@ export const providers: Provider[] = [
     mediaType: 'tv',
     enabled: true,
     hasAds: true,
-    supportsSandbox: false,
     priority: 6,
     buildUrl: ({ tmdbId, season, episode }) => `https://embed.filmu.in/tv/${tmdbId}/${season}/${episode}`,
   },
@@ -116,7 +89,6 @@ export const providers: Provider[] = [
     mediaType: 'movie',
     enabled: !!(import.meta.env.VITE_NEXSTREAM_BASE_URL && import.meta.env.VITE_NEXSTREAM_API_KEY),
     hasAds: false,
-    supportsSandbox: true,
     priority: 2,
     buildUrl: ({ tmdbId }) => {
       const baseUrl = import.meta.env.VITE_NEXSTREAM_BASE_URL?.replace(/\/$/, '');
@@ -131,7 +103,6 @@ export const providers: Provider[] = [
     mediaType: 'tv',
     enabled: !!(import.meta.env.VITE_NEXSTREAM_BASE_URL && import.meta.env.VITE_NEXSTREAM_API_KEY),
     hasAds: false,
-    supportsSandbox: true,
     priority: 2,
     buildUrl: ({ tmdbId, season, episode }) => {
       const baseUrl = import.meta.env.VITE_NEXSTREAM_BASE_URL?.replace(/\/$/, '');
