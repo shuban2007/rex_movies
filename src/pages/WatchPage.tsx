@@ -7,6 +7,8 @@ import { EpisodeList } from '../components/tv/EpisodeList';
 import { useGuestStore } from '../hooks/useGuestStore';
 import './WatchPage.css';
 
+const DOWNLOAD_BASE_URL = 'https://acermovies.fun';
+
 export function WatchPage() {
   const { mediaType = 'movie', tmdbId } = useParams<{ mediaType?: 'movie' | 'tv', tmdbId: string }>();
   const [media, setMedia] = useState<MovieSearchResult | TvSeriesDetails | null>(null);
@@ -266,28 +268,49 @@ export function WatchPage() {
               onEpisodeEnd={advanceToNextEpisode}
             />
 
-            {/* Next Episode / Series Complete controls */}
-            {isTv && media && (
-              <div className="episode-advance-controls">
-                {seriesComplete ? (
-                  <div className="series-complete-notice">
+            {/* Player Bottom Controls */}
+            <div className="player-bottom-controls">
+              <div className="player-controls-left">
+                {DOWNLOAD_BASE_URL && media && (
+                  <button 
+                    className="download-movie-btn" 
+                    onClick={() => window.open(DOWNLOAD_BASE_URL, '_blank', 'noopener,noreferrer')}
+                  >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                      <polyline points="22 4 12 14.01 9 11.01"/>
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
                     </svg>
-                    <span>You've reached the end of the series</span>
-                  </div>
-                ) : hasNextEpisode ? (
-                  <button className="next-episode-btn" onClick={advanceToNextEpisode}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="5 4 15 12 5 20 5 4"/>
-                      <line x1="19" y1="5" x2="19" y2="19"/>
-                    </svg>
-                    Next Episode
+                    Download
                   </button>
-                ) : null}
+                )}
               </div>
-            )}
+
+              <div className="player-controls-right">
+                {/* Next Episode / Series Complete controls */}
+                {isTv && media && (
+                  <div className="episode-advance-controls">
+                    {seriesComplete ? (
+                      <div className="series-complete-notice">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                          <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <span>You've reached the end of the series</span>
+                      </div>
+                    ) : hasNextEpisode ? (
+                      <button className="next-episode-btn" onClick={advanceToNextEpisode}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="5 4 15 12 5 20 5 4"/>
+                          <line x1="19" y1="5" x2="19" y2="19"/>
+                        </svg>
+                        Next Episode
+                      </button>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {media && (

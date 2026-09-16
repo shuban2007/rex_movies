@@ -163,11 +163,55 @@
   margin-bottom: 1rem;
 }
 
+/* ── Player Bottom Controls ── */
+.player-bottom-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.75rem;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.player-controls-left {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.player-controls-right {
+  display: flex;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.download-movie-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  color: rgba(240, 240, 245, 0.9);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.download-movie-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
 /* ── Episode Advance Controls ── */
 .episode-advance-controls {
   display: flex;
   justify-content: flex-end;
-  margin-top: 0.75rem;
 }
 
 .next-episode-btn {
