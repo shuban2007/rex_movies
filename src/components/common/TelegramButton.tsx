@@ -4,8 +4,8 @@ import TelegramLogo from '../../assets/TelegramLogo.png';
 
 export function TelegramButton() {
   const [showThought, setShowThought] = useState(false);
-  const hideTimerRef = useRef<NodeJS.Timeout>();
-  const showTimerRef = useRef<NodeJS.Timeout>();
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const showTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     const handleAdBlockerDismissed = () => {
