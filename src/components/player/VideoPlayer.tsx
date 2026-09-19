@@ -38,7 +38,7 @@ export function VideoPlayer({ tmdbId, imdbId, title, onRetry, mediaType = 'movie
   const fallbackCountRef = useRef(0);
   const lastEvaluatedTmdbId = useRef<number | null>(null);
 
-  const { history, saveProvider } = useGuestStore();
+  const { history, saveProvider, recordProgress } = useGuestStore();
   const { config: shieldConfig } = useProviderShield(selectedProviderId, iframeRef);
 
   const availableProviders = getEnabledProviders(mediaType);
@@ -123,6 +123,13 @@ export function VideoPlayer({ tmdbId, imdbId, title, onRetry, mediaType = 'movie
     if (tmdbId && selectedProviderId) {
       saveProvider(tmdbId, mediaType, selectedProviderId, season, episode);
     }
+
+    if (selectedProviderId === 'vidrift-tv' && iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({
+        type: "vidrift:nextup-info",
+        next: { season: season || 1, episode: (episode || 1) + 1 }
+      }, "https://embed.vidrift.in");
+    }
   }, [tmdbId, mediaType, selectedProviderId, season, episode, saveProvider]);
 
 
@@ -143,10 +150,21 @@ export function VideoPlayer({ tmdbId, imdbId, title, onRetry, mediaType = 'movie
   }, [selectedProviderId, availableProviders]);
 
   const selectedProvider = availableProviders.find(p => p.id === selectedProviderId);
+  const historyItem = tmdbId ? history.find(h => h.tmdbId === tmdbId && h.mediaType === mediaType) : undefined;
+  
+  let savedProgress: number | undefined;
+  if (historyItem && historyItem.progress && historyItem.progress > 0) {
+    if (mediaType === 'movie') {
+      savedProgress = historyItem.progress;
+    } else if (mediaType === 'tv' && historyItem.season === season && historyItem.episode === episode) {
+      savedProgress = historyItem.progress;
+    }
+  }
+
   const embedUrl = (tmdbId && selectedProvider) 
     ? (mediaType === 'movie' 
-        ? getMovieProviderUrl(selectedProvider, { tmdbId, imdbId })
-        : getTVProviderUrl(selectedProvider, { tmdbId, imdbId }, season || 1, episode || 1))
+        ? getMovieProviderUrl(selectedProvider, { tmdbId, imdbId, progress: savedProgress })
+        : getTVProviderUrl(selectedProvider, { tmdbId, imdbId, progress: savedProgress }, season || 1, episode || 1))
     : null;
 
   // ── Robust: listen for postMessage-based episode-end signals ──
@@ -173,6 +191,27 @@ export function VideoPlayer({ tmdbId, imdbId, title, onRetry, mediaType = 'movie
       try {
         let payload = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
         if (!payload) return;
+
+        if (selectedProvider?.id.startsWith('vidy-')) {
+          if (payload.event === 'timeupdate' && typeof payload.currentTime === 'number' && typeof payload.duration === 'number') {
+            recordProgress(tmdbId!, mediaType, season, episode, payload.currentTime, payload.duration);
+            return;
+          } else if (payload.event === 'play' || payload.event === 'pause') {
+            if (typeof payload.currentTime === 'number' && typeof payload.duration === 'number') {
+              recordProgress(tmdbId!, mediaType, season, episode, payload.currentTime, payload.duration);
+            }
+            return;
+          } else if (payload.event === 'ended') {
+            if (onEpisodeEnd) onEpisodeEnd();
+            return;
+          }
+        }
+
+        if (payload.type === 'vidrift:nextup-play') {
+          if (import.meta.env.DEV) console.log('[REX Player] VidRift nextup-play event detected');
+          onEpisodeEnd();
+          return;
+        }
 
         // Support nested payloads like { data: { currentTime, duration } }
         if (payload.data && typeof payload.data === 'object' && !payload.event && !payload.type) {
@@ -206,7 +245,7 @@ export function VideoPlayer({ tmdbId, imdbId, title, onRetry, mediaType = 'movie
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [onEpisodeEnd, mediaType, selectedProvider?.supportsPlaybackEvents, embedUrl]);
+  }, [onEpisodeEnd, mediaType, selectedProvider?.supportsPlaybackEvents, selectedProvider?.id, embedUrl, tmdbId, season, episode, recordProgress]);
 
   const handleProviderChange = (val: string) => {
     fallbackCountRef.current = 0; // Reset on manual change
@@ -220,7 +259,7 @@ export function VideoPlayer({ tmdbId, imdbId, title, onRetry, mediaType = 'movie
       {tmdbId && availableProviders.length > 0 && (
         <div className="player-controls">
           <div className="provider-selector-container">
-            <span className="provider-selector-label">SERVER:</span>
+            <span className="provider-selector-label">PROVIDER:</span>
             {availableProviders.length === 1 ? (
               <div className="single-provider-pill">
                 <span className="status-dot"></span>

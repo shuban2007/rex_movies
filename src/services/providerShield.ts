@@ -19,6 +19,10 @@ const providerConfigs: Record<string, ProviderShieldConfig> = {
   'vidcore-tv': { providerId: 'vidcore-tv', supportsSandbox: true, sandboxFlags: STRICT_SANDBOX },
   'nexstream-movie': { providerId: 'nexstream-movie', supportsSandbox: true, sandboxFlags: STRICT_SANDBOX },
   'nexstream-tv': { providerId: 'nexstream-tv', supportsSandbox: true, sandboxFlags: STRICT_SANDBOX },
+  'vidrift-movie': { providerId: 'vidrift-movie', supportsSandbox: false },
+  'vidrift-tv': { providerId: 'vidrift-tv', supportsSandbox: false },
+  'vidy-movie': { providerId: 'vidy-movie', supportsSandbox: false },
+  'vidy-tv': { providerId: 'vidy-tv', supportsSandbox: false },
   
   // FilmU requires full isolation fallback (unsandboxed) to prevent "Playback Disabled" errors
   'filmu-movie': { providerId: 'filmu-movie', supportsSandbox: false },

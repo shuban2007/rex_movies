@@ -18,13 +18,17 @@ export interface GuestStoreContextValue {
     tmdbId: number,
     mediaType: 'movie' | 'tv',
     season?: number,
-    episode?: number
+    episode?: number,
+    progress?: number,
+    duration?: number
   ) => void;
   addOrUpdateHistory: (
     tmdbId: number,
     mediaType: 'movie' | 'tv',
     season?: number,
-    episode?: number
+    episode?: number,
+    progress?: number,
+    duration?: number
   ) => void;
   saveProvider: (
     tmdbId: number,
@@ -109,9 +113,11 @@ export function GuestStoreProvider({ children }: { children: ReactNode }) {
       tmdbId: number,
       mediaType: 'movie' | 'tv',
       season?: number,
-      episode?: number
+      episode?: number,
+      progress?: number,
+      duration?: number
     ) => {
-      historyService.recordProgress(tmdbId, mediaType, season, episode);
+      historyService.recordProgress(tmdbId, mediaType, season, episode, progress, duration);
     },
     []
   );
@@ -121,9 +127,11 @@ export function GuestStoreProvider({ children }: { children: ReactNode }) {
       tmdbId: number,
       mediaType: 'movie' | 'tv',
       season?: number,
-      episode?: number
+      episode?: number,
+      progress?: number,
+      duration?: number
     ) => {
-      historyService.addOrUpdateHistory(tmdbId, mediaType, season, episode);
+      historyService.addOrUpdateHistory(tmdbId, mediaType, season, episode, progress, duration);
     },
     []
   );

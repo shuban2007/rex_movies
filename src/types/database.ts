@@ -10,4 +10,6 @@ export interface HistoryItem {
   season?: number;
   episode?: number;
   providerId?: string;
+  progress?: number;
+  duration?: number;
 }

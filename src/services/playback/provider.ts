@@ -5,6 +5,7 @@ export interface ProviderParams {
   season?: number | string;
   episode?: number | string;
   imdbId?: string | null;
+  progress?: number;
 }
 
 export interface Provider {
@@ -47,8 +48,35 @@ export const providers: Provider[] = [
     mediaType: 'movie',
     enabled: true,
     hasAds: true,
-    priority: 6,
+    priority: 2,
     buildUrl: ({ tmdbId }) => `https://embed.filmu.in/movie/${tmdbId}`,
+  },
+  {
+    id: 'vidrift-movie',
+    name: 'VidRift',
+    mediaType: 'movie',
+    enabled: true,
+    hasAds: false,
+    priority: 3,
+    buildUrl: ({ tmdbId }) => `https://embed.vidrift.in/embed/movie/${tmdbId}?brand=REX.io`,
+  },
+  {
+    id: 'vidy-movie',
+    name: 'Vidy',
+    mediaType: 'movie',
+    enabled: true,
+    hasAds: false,
+    priority: 5,
+    supportsPlaybackEvents: true,
+    buildUrl: ({ tmdbId, progress }) => {
+      const url = new URL(`https://vidy.st/movie/${tmdbId}`);
+      url.searchParams.set('color', 'E50914');
+      url.searchParams.set('autoplay', 'true');
+      if (progress && progress > 0) {
+        url.searchParams.set('progress', Math.floor(progress).toString());
+      }
+      return url.toString();
+    }
   },
 
   // TV PROVIDERS
@@ -78,8 +106,36 @@ export const providers: Provider[] = [
     mediaType: 'tv',
     enabled: true,
     hasAds: true,
-    priority: 6,
+    priority: 2,
     buildUrl: ({ tmdbId, season, episode }) => `https://embed.filmu.in/tv/${tmdbId}/${season}/${episode}`,
+  },
+  {
+    id: 'vidrift-tv',
+    name: 'VidRift',
+    mediaType: 'tv',
+    enabled: true,
+    hasAds: false,
+    priority: 3,
+    supportsPlaybackEvents: true,
+    buildUrl: ({ tmdbId, season, episode }) => `https://embed.vidrift.in/embed/tv/${tmdbId}/${season}/${episode}?brand=REX.io`,
+  },
+  {
+    id: 'vidy-tv',
+    name: 'Vidy',
+    mediaType: 'tv',
+    enabled: true,
+    hasAds: false,
+    priority: 5,
+    supportsPlaybackEvents: true,
+    buildUrl: ({ tmdbId, season, episode, progress }) => {
+      const url = new URL(`https://vidy.st/tv/${tmdbId}/${season}/${episode}`);
+      url.searchParams.set('color', 'E50914');
+      url.searchParams.set('autoplay', 'true');
+      if (progress && progress > 0) {
+        url.searchParams.set('progress', Math.floor(progress).toString());
+      }
+      return url.toString();
+    }
   },
   
   // NEXSTREAM
@@ -89,7 +145,7 @@ export const providers: Provider[] = [
     mediaType: 'movie',
     enabled: !!(import.meta.env.VITE_NEXSTREAM_BASE_URL && import.meta.env.VITE_NEXSTREAM_API_KEY),
     hasAds: false,
-    priority: 2,
+    priority: 6,
     buildUrl: ({ tmdbId }) => {
       const baseUrl = import.meta.env.VITE_NEXSTREAM_BASE_URL?.replace(/\/$/, '');
       const apiKey = import.meta.env.VITE_NEXSTREAM_API_KEY;
@@ -103,7 +159,7 @@ export const providers: Provider[] = [
     mediaType: 'tv',
     enabled: !!(import.meta.env.VITE_NEXSTREAM_BASE_URL && import.meta.env.VITE_NEXSTREAM_API_KEY),
     hasAds: false,
-    priority: 2,
+    priority: 6,
     buildUrl: ({ tmdbId, season, episode }) => {
       const baseUrl = import.meta.env.VITE_NEXSTREAM_BASE_URL?.replace(/\/$/, '');
       const apiKey = import.meta.env.VITE_NEXSTREAM_API_KEY;
@@ -142,6 +198,7 @@ export function getDefaultProvider(mediaType: MediaType): Provider | undefined {
 export interface ProviderMedia {
   tmdbId: number;
   imdbId?: string | null;
+  progress?: number;
 }
 
 export function getMovieProviderUrl(provider: Provider, media: ProviderMedia): string | null {
@@ -151,7 +208,8 @@ export function getMovieProviderUrl(provider: Provider, media: ProviderMedia): s
   try {
     const url = provider.buildUrl({
       tmdbId: media.tmdbId,
-      imdbId: media.imdbId
+      imdbId: media.imdbId,
+      progress: media.progress
     });
 
     if (!url || typeof url !== 'string' || url.trim() === '') {
@@ -181,7 +239,8 @@ export function getTVProviderUrl(
       tmdbId: media.tmdbId,
       season,
       episode,
-      imdbId: media.imdbId
+      imdbId: media.imdbId,
+      progress: media.progress
     });
 
     if (!url || typeof url !== 'string' || url.trim() === '') {

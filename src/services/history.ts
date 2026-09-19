@@ -27,6 +27,8 @@ function migrateFromLegacy(): void {
           season: item.season_number ?? item.season ?? undefined,
           episode: item.episode_number ?? item.episode ?? undefined,
           providerId: item.providerId ?? undefined,
+          progress: item.progress ?? undefined,
+          duration: item.duration ?? undefined,
         }))
         .filter((item) => !isNaN(item.tmdbId) && (item.mediaType === 'movie' || item.mediaType === 'tv'));
 
@@ -104,7 +106,9 @@ export const historyService = {
     tmdbId: number,
     mediaType: 'movie' | 'tv',
     season?: number,
-    episode?: number
+    episode?: number,
+    progress?: number,
+    duration?: number
   ): void {
     const timerKey = `${mediaType}_${tmdbId}`;
 
@@ -113,16 +117,18 @@ export const historyService = {
     }
 
     progressTimers[timerKey] = setTimeout(() => {
-      historyService.addOrUpdateHistory(tmdbId, mediaType, season, episode);
+      historyService.addOrUpdateHistory(tmdbId, mediaType, season, episode, progress, duration);
       delete progressTimers[timerKey];
-    }, 2000);
+    }, 5000); // 5 seconds debounce as requested
   },
 
   addOrUpdateHistory(
     tmdbId: number,
     mediaType: 'movie' | 'tv',
     season?: number,
-    episode?: number
+    episode?: number,
+    progress?: number,
+    duration?: number
   ): void {
     migrateFromLegacy();
 
@@ -140,9 +146,11 @@ export const historyService = {
       tmdbId,
       mediaType,
       watchedAt: Date.now(),
-      season,
-      episode,
-      ...(existing?.providerId ? { providerId: existing.providerId } : {})
+      season: season !== undefined ? season : existing?.season,
+      episode: episode !== undefined ? episode : existing?.episode,
+      ...(existing?.providerId ? { providerId: existing.providerId } : {}),
+      progress: progress !== undefined ? progress : existing?.progress,
+      duration: duration !== undefined ? duration : existing?.duration,
     });
 
     writeHistory(filtered);
