@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { getTvSeasonEpisodes, type TvSeason, type TvEpisode } from '../../services/tmdb';
 import { CustomSelect } from '../ui/CustomSelect';
 import './EpisodeList.css';
@@ -22,6 +22,23 @@ export function EpisodeList({
 }: EpisodeListProps) {
   const [episodes, setEpisodes] = useState<TvEpisode[]>([]);
   const [loading, setLoading] = useState(false);
+  const activeEpisodeRef = useRef<HTMLButtonElement>(null);
+  const preventScrollRef = useRef(false);
+
+  useEffect(() => {
+    if (preventScrollRef.current) {
+      preventScrollRef.current = false;
+      return;
+    }
+    
+    if (activeEpisodeRef.current) {
+      activeEpisodeRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+    }
+  }, [activeEpisode, episodes]);
 
   useEffect(() => {
     let mounted = true;
@@ -85,8 +102,12 @@ export function EpisodeList({
             {episodes.map((episode) => (
               <button
                 key={episode.id}
+                ref={episode.episodeNumber === activeEpisode ? activeEpisodeRef : null}
                 className={`episode-page-btn ${episode.episodeNumber === activeEpisode ? 'active' : ''}`}
-                onClick={() => onEpisodeSelect(episode.episodeNumber, episode.title)}
+                onClick={() => {
+                  preventScrollRef.current = true;
+                  onEpisodeSelect(episode.episodeNumber, episode.title);
+                }}
                 title={episode.title}
               >
                 <span className="ep-number">{episode.episodeNumber}</span>

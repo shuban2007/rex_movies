@@ -1,6 +1,8 @@
 .episode-list-section {
   margin-top: 1rem;
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   background: rgba(15, 15, 20, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: 12px;
@@ -51,26 +53,36 @@
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
-  scrollbar-width: none;      /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.22) rgba(255,255,255,0.04);
   padding-top: 4px;
   padding-bottom: 12px;
 }
 
 .episode-grid-scroll::-webkit-scrollbar {
-  display: none;              /* Chrome / Safari */
+  height: 6px;
 }
 
-/*
- * Two-row column-wrap: items flow top→bottom, then wrap to a new column.
- * Height = 2 × button-height + 1 × gap = 2(44px) + 8px = 96px.
- */
+.episode-grid-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+}
+
+.episode-grid-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+}
+
+.episode-grid-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.38);
+}
+
 .episode-grid-wrap {
   display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  align-content: flex-start;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 8px;
-  height: 96px;                /* exactly 2 rows */
 }
 
 .episode-page-btn {
