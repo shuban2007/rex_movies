@@ -34,13 +34,13 @@ export const providers: Provider[] = [
     buildUrl: ({ tmdbId }) => `https://cinesrc.st/embed/movie/${tmdbId}`,
   },
   {
-    id: 'vidsrc-wiki-movie',
-    name: 'VidSrc Wiki',
+    id: 'cinevids-movie',
+    name: 'Cinevids',
     mediaType: 'movie',
-    enabled: true,
+    enabled: false,
     hasAds: true,
     priority: 4,
-    buildUrl: ({ tmdbId }) => `https://vidsrc.wiki/embed/movie/${tmdbId}`,
+    buildUrl: ({ tmdbId }) => `http://cinevids.site/embed/movie/${tmdbId}`,
   },
   {
     id: 'filmu-movie',
@@ -92,13 +92,13 @@ export const providers: Provider[] = [
     buildUrl: ({ tmdbId, season, episode }) => `https://cinesrc.st/embed/tv/${tmdbId}?s=${season}&e=${episode}`,
   },
   {
-    id: 'vidsrc-wiki-tv',
-    name: 'VidSrc Wiki',
+    id: 'cinevids-tv',
+    name: 'Cinevids',
     mediaType: 'tv',
-    enabled: true,
+    enabled: false,
     hasAds: true,
     priority: 4,
-    buildUrl: ({ tmdbId, season, episode }) => `https://vidsrc.wiki/embed/tv/${tmdbId}/${season}/${episode}`,
+    buildUrl: ({ tmdbId, season, episode }) => `http://cinevids.site/embed/tv/${tmdbId}/${season}/${episode}`,
   },
   {
     id: 'filmu-tv',
@@ -137,7 +137,7 @@ export const providers: Provider[] = [
       return url.toString();
     }
   },
-  
+
   // NEXSTREAM
   {
     id: 'nexstream-movie',
@@ -167,7 +167,7 @@ export const providers: Provider[] = [
       return `${baseUrl}/embed/tv/${tmdbId}/${season}/${episode}?apikey=${apiKey}`;
     }
   },
-  
+
 ];
 
 /**

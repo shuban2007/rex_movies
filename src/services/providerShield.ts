@@ -13,8 +13,8 @@ const STRICT_SANDBOX = "allow-scripts allow-same-origin allow-presentation allow
 const providerConfigs: Record<string, ProviderShieldConfig> = {
   'cinesrc-movie': { providerId: 'cinesrc-movie', supportsSandbox: true, sandboxFlags: STRICT_SANDBOX },
   'cinesrc-tv': { providerId: 'cinesrc-tv', supportsSandbox: true, sandboxFlags: STRICT_SANDBOX },
-  'vidsrc-wiki-movie': { providerId: 'vidsrc-wiki-movie', supportsSandbox: false },
-  'vidsrc-wiki-tv': { providerId: 'vidsrc-wiki-tv', supportsSandbox: false },
+  'cinevids-movie': { providerId: 'cinevids-movie', supportsSandbox: false },
+  'cinevids-tv': { providerId: 'cinevids-tv', supportsSandbox: false },
   'vidcore-movie': { providerId: 'vidcore-movie', supportsSandbox: true, sandboxFlags: STRICT_SANDBOX },
   'vidcore-tv': { providerId: 'vidcore-tv', supportsSandbox: true, sandboxFlags: STRICT_SANDBOX },
   'nexstream-movie': { providerId: 'nexstream-movie', supportsSandbox: true, sandboxFlags: STRICT_SANDBOX },

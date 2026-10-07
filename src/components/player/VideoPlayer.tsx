@@ -345,7 +345,7 @@ export function VideoPlayer({ tmdbId, imdbId, title, onRetry, mediaType = 'movie
 
           {/* ── Iframe ───────────────────────────────────── */}
           {embedUrl && (
-            selectedProviderId.includes('vidsrc-wiki') ? (
+            selectedProviderId.includes('cinevids') ? (
               <iframe
                 key={embedUrl}
                 ref={iframeRef}
