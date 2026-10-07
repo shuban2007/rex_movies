@@ -86,6 +86,10 @@ const apiPlugin = () => ({
               posterPath: item.poster_path || null,
               backdropPath: item.backdrop_path || null,
               overview: item.overview || '',
+              genreIds: item.genre_ids || [],
+              originalLanguage: item.original_language || '',
+              voteAverage: item.vote_average || 0,
+              popularity: item.popularity || 0,
             };
           });
 

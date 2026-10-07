@@ -331,6 +331,14 @@ export function WatchPage() {
                   <p className="movie-metadata">
                     {media.year || ''} • {isTv ? 'TV Series' : 'Movie'}
                     {isTv && 'seasons' in media && ` • ${media.seasons.length} Seasons`}
+                    {media.voteAverage !== undefined && media.voteAverage > 0 && (
+                      <span className="movie-rating-inline">
+                        <svg viewBox="0 0 24 24" fill="#ffb400" width="16" height="16" style={{ verticalAlign: 'text-bottom', margin: '0 4px 0 8px' }}>
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                        {media.voteAverage.toFixed(1)}
+                      </span>
+                    )}
                   </p>
                   
                   {isTv && (
