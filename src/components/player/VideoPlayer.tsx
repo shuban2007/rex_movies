@@ -345,19 +345,48 @@ export function VideoPlayer({ tmdbId, imdbId, title, onRetry, mediaType = 'movie
 
           {/* ── Iframe ───────────────────────────────────── */}
           {embedUrl && (
-            <iframe
-              key={embedUrl}
-              ref={iframeRef}
-              className={`player-iframe ${state === 'loaded' ? 'player-iframe--visible' : ''}`}
-              src={embedUrl}
-              title={title ? `${title} — Rex.io Video Player` : 'Rex.io Video Player'}
-              {...(shieldConfig.supportsSandbox ? { sandbox: shieldConfig.sandboxFlags } : {})}
-              allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-              allowFullScreen
-              referrerPolicy="no-referrer"
-              onLoad={handleIframeLoad}
-              onError={handleIframeError}
-            />
+            selectedProviderId.includes('vidsrc-wiki') ? (
+              <iframe
+                key={embedUrl}
+                ref={iframeRef}
+                className={`player-iframe ${state === 'loaded' ? 'player-iframe--visible' : ''}`}
+                src={embedUrl}
+                title={title ? `${title} — Rex.io Video Player` : 'Rex.io Video Player'}
+                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                allowFullScreen
+                onLoad={handleIframeLoad}
+                onError={handleIframeError}
+              />
+            ) : selectedProviderId.includes('filmu') ? (
+              <iframe
+                key={embedUrl}
+                ref={iframeRef}
+                className={`player-iframe ${state === 'loaded' ? 'player-iframe--visible' : ''}`}
+                src={embedUrl}
+                title={title ? `${title} — Rex.io Video Player` : 'Rex.io Video Player'}
+                {...(shieldConfig.supportsSandbox ? { sandbox: shieldConfig.sandboxFlags } : {})}
+                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                allowFullScreen
+                onLoad={handleIframeLoad}
+                onError={handleIframeError}
+              />
+            ) : (
+              <iframe
+                key={embedUrl}
+                ref={iframeRef}
+                className={`player-iframe ${state === 'loaded' ? 'player-iframe--visible' : ''}`}
+                src={embedUrl}
+                title={title ? `${title} — Rex.io Video Player` : 'Rex.io Video Player'}
+                {...(shieldConfig.supportsSandbox ? { sandbox: shieldConfig.sandboxFlags } : {})}
+                allow="encrypted-media; autoplay *; fullscreen *; picture-in-picture; display-capture; clipboard-read; clipboard-write"
+                allowFullScreen
+                webkitallowfullscreen="true"
+                mozallowfullscreen="true"
+                referrerPolicy="no-referrer"
+                onLoad={handleIframeLoad}
+                onError={handleIframeError}
+              />
+            )
           )}
         </div>
       </div>
