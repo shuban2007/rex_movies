@@ -380,8 +380,6 @@ export function VideoPlayer({ tmdbId, imdbId, title, onRetry, mediaType = 'movie
                 {...(shieldConfig.supportsSandbox ? { sandbox: shieldConfig.sandboxFlags } : {})}
                 allow="encrypted-media; autoplay *; fullscreen *; picture-in-picture; display-capture; clipboard-read; clipboard-write"
                 allowFullScreen
-                webkitallowfullscreen="true"
-                mozallowfullscreen="true"
                 referrerPolicy="no-referrer"
                 onLoad={handleIframeLoad}
                 onError={handleIframeError}
