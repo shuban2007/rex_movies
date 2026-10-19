@@ -25,6 +25,37 @@ describe('Playback Provider Service', () => {
     expect(vidcoreTv?.hasAds).toBe(false);
   });
 
+  it('registers FilmU for both movies and tv shows', () => {
+    const filmuMovie = getProviderById('filmu-movie');
+    const filmuTv = getProviderById('filmu-tv');
+
+    expect(filmuMovie).toBeDefined();
+    expect(filmuMovie?.name).toBe('FilmU');
+    expect(filmuMovie?.mediaType).toBe('movie');
+    expect(filmuMovie?.enabled).toBe(true);
+
+    expect(filmuTv).toBeDefined();
+    expect(filmuTv?.name).toBe('FilmU');
+    expect(filmuTv?.mediaType).toBe('tv');
+    expect(filmuTv?.enabled).toBe(true);
+  });
+
+  it('builds valid movie embed URLs for FilmU', () => {
+    const filmuMovie = getProviderById('filmu-movie');
+    expect(filmuMovie).toBeDefined();
+
+    const url = getMovieProviderUrl(filmuMovie!, { tmdbId: 1726 });
+    expect(url).toBe('https://embed.filmu.in/movie/1726');
+  });
+
+  it('builds valid TV series embed URLs for FilmU with season and episode', () => {
+    const filmuTv = getProviderById('filmu-tv');
+    expect(filmuTv).toBeDefined();
+
+    const url = getTVProviderUrl(filmuTv!, { tmdbId: 94997 }, 1, 1);
+    expect(url).toBe('https://embed.filmu.in/tv/94997/1/1');
+  });
+
   it('builds valid movie embed URLs for VidCore with theme and autoplay', () => {
     const vidcoreMovie = getProviderById('vidcore-movie');
     expect(vidcoreMovie).toBeDefined();
