@@ -168,7 +168,22 @@ export function MovieSearch() {
           ) : results.length > 0 ? (
             <>
               {didYouMean && (
-                <div className="navbar-search-did-you-mean">
+                <div 
+                  className="navbar-search-did-you-mean"
+                  onClick={() => {
+                    setQuery(didYouMean);
+                    executeSearch(didYouMean);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setQuery(didYouMean);
+                      executeSearch(didYouMean);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
                   Did you mean <strong>"{didYouMean}"</strong>?
                 </div>
               )}
@@ -219,7 +234,34 @@ export function MovieSearch() {
               )}
             </>
           ) : (
-            <div className="navbar-search-message">No results found.</div>
+            <div className="navbar-search-message">
+              {didYouMean ? (
+                <div>
+                  No results found.
+                  <div
+                    className="navbar-search-did-you-mean"
+                    style={{ marginTop: '0.75rem', borderRadius: '6px' }}
+                    onClick={() => {
+                      setQuery(didYouMean);
+                      executeSearch(didYouMean);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setQuery(didYouMean);
+                        executeSearch(didYouMean);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    Did you mean <strong>"{didYouMean}"</strong>?
+                  </div>
+                </div>
+              ) : (
+                'No results found.'
+              )}
+            </div>
           )}
         </div>
       )}

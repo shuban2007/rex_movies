@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { searchContent, getDiscoveryContent, type DiscoveryItem, type ContentType } from '../services/discoveryEngine';
+import {
+  searchContent,
+  getDiscoveryContent,
+  type DiscoveryItem,
+  type ContentType,
+  type SearchIntent,
+  type IntentChip
+} from '../services/discoveryEngine';
 import { MovieCard } from '../components/movies/MovieCard';
 import './SearchResultsPage.css';
 
@@ -17,6 +24,9 @@ export function SearchResultsPage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [didYouMean, setDidYouMean] = useState<string | undefined>();
+  const [detectedIntent, setDetectedIntent] = useState<SearchIntent | undefined>();
+  const [removedChipIds, setRemovedChipIds] = useState<string[]>([]);
 
   // Keep track of the active request to avoid race conditions
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -28,11 +38,18 @@ export function SearchResultsPage() {
         setIsDropdownOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const fetchData = useCallback(async (targetPage: number, isNewSearch: boolean, currentQuery: string, currentType: ContentType, currentSort: 'relevance' | 'trending' | 'latest') => {
+  const fetchData = useCallback(async (
+    targetPage: number,
+    isNewSearch: boolean,
+    currentQuery: string,
+    currentType: ContentType,
+    currentSort: 'relevance' | 'trending' | 'latest',
+    activeRemovedChipIds: string[]
+  ) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -46,17 +63,41 @@ export function SearchResultsPage() {
       let fetchedResults: DiscoveryItem[] = [];
       
       if (currentQuery.trim()) {
+        const activeGenre = detectedIntent?.genreIds?.find(
+          gid => !activeRemovedChipIds.includes(`genre-${gid}`)
+        );
         const res = await searchContent(currentQuery, {
           page: targetPage,
           type: currentType,
           sort: currentSort,
+          genreId: activeGenre,
           signal: controller.signal
         });
+        
         fetchedResults = res.results;
+
+        if (!controller.signal.aborted) {
+          setDidYouMean(res.didYouMean);
+          if (isNewSearch) {
+            setDetectedIntent(res.intent);
+            setPage(1);
+          }
+        }
       } else {
-        // Discovery mode (no pagination support on discovery for now, just page 1)
+        // Discovery mode (no pagination support on discovery, just page 1)
         if (targetPage === 1) {
-          fetchedResults = await getDiscoveryContent({ type: currentType, sort: currentSort, signal: controller.signal });
+          fetchedResults = await getDiscoveryContent({
+            type: currentType,
+            sort: currentSort,
+            signal: controller.signal
+          });
+          if (!controller.signal.aborted) {
+            setDidYouMean(undefined);
+            setDetectedIntent(undefined);
+            if (isNewSearch) {
+              setPage(1);
+            }
+          }
         } else {
           setHasMore(false);
           setIsLoading(false);
@@ -68,7 +109,7 @@ export function SearchResultsPage() {
         setResults(prev => {
           if (isNewSearch) return fetchedResults;
           
-          // Deduplicate
+          // Deduplicate across pages
           const uniqueMap = new Map<string, DiscoveryItem>();
           prev.forEach(item => uniqueMap.set(`${item.mediaType}-${item.id}`, item));
           fetchedResults.forEach(item => uniqueMap.set(`${item.mediaType}-${item.id}`, item));
@@ -78,10 +119,12 @@ export function SearchResultsPage() {
         // TMDB pages usually have 20 items. If we get less, we've likely hit the end.
         if (fetchedResults.length < 20 && currentQuery.trim()) {
           setHasMore(false);
+        } else if (currentQuery.trim()) {
+          setHasMore(true);
         }
         
         if (!currentQuery.trim() && targetPage === 1) {
-          setHasMore(false); // Discovery mode doesn't paginate yet
+          setHasMore(false);
         }
       }
     } catch (err: any) {
@@ -94,43 +137,70 @@ export function SearchResultsPage() {
         setIsLoading(false);
       }
     }
-  }, []);
-  // Fetch logic
-  useEffect(() => {
-    // Reset state when query, type, or sort changes
-    setResults([]);
-    setPage(1);
-    setHasMore(true);
-    fetchData(1, true, query, type, sort);
-  }, [query, type, sort, fetchData]);
+  }, [detectedIntent]);
 
+  // Fetch when query, type, sort, or removed chips change
   useEffect(() => {
-    if (page > 1) {
-      fetchData(page, false, query, type, sort);
-    }
-  }, [page, query, type, sort, fetchData]);
-
-// removed fetchData definition here
+    fetchData(1, true, query, type, sort, removedChipIds);
+  }, [query, type, sort, removedChipIds, fetchData]);
 
   const handleFilterChange = (newType: string) => {
     setSearchParams(prev => {
-      prev.set('type', newType);
-      return prev;
+      const next = new URLSearchParams(prev);
+      next.set('type', newType);
+      return next;
     });
   };
 
   const handleSortChange = (newSort: string) => {
     setSearchParams(prev => {
-      prev.set('sort', newSort);
-      return prev;
+      const next = new URLSearchParams(prev);
+      next.set('sort', newSort);
+      return next;
     });
   };
 
   const handleLoadMore = () => {
     if (!isLoading && hasMore) {
-      setPage(p => p + 1);
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchData(nextPage, false, query, type, sort, removedChipIds);
     }
   };
+
+  const handleDidYouMeanClick = (suggested: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('q', suggested);
+      return next;
+    });
+  };
+
+  const handleRemoveChip = (chip: IntentChip) => {
+    setRemovedChipIds(prev => [...prev, chip.id]);
+    
+    // If the chip was for mediaType, also update URL type param
+    if (chip.type === 'mediaType') {
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.set('type', 'all');
+        return next;
+      });
+    }
+    // If chip was for sort, revert sort param
+    if (chip.type === 'sort') {
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.set('sort', 'relevance');
+        return next;
+      });
+    }
+  };
+
+  // Active intent chips excluding removed ones
+  const activeChips = (detectedIntent?.chips || []).filter(
+    chip => !removedChipIds.includes(chip.id)
+  );
 
   return (
     <div className="search-results-page">
@@ -141,10 +211,30 @@ export function SearchResultsPage() {
         
         <div className="search-controls">
           <div className="search-filters">
-            <button className={`search-filter-btn ${type === 'all' ? 'active' : ''}`} onClick={() => handleFilterChange('all')}>All</button>
-            <button className={`search-filter-btn ${type === 'movie' ? 'active' : ''}`} onClick={() => handleFilterChange('movie')}>Movies</button>
-            <button className={`search-filter-btn ${type === 'tv' ? 'active' : ''}`} onClick={() => handleFilterChange('tv')}>TV Series</button>
-            <button className={`search-filter-btn ${type === 'anime' ? 'active' : ''}`} onClick={() => handleFilterChange('anime')}>Anime</button>
+            <button
+              className={`search-filter-btn ${type === 'all' ? 'active' : ''}`}
+              onClick={() => handleFilterChange('all')}
+            >
+              All
+            </button>
+            <button
+              className={`search-filter-btn ${type === 'movie' ? 'active' : ''}`}
+              onClick={() => handleFilterChange('movie')}
+            >
+              Movies
+            </button>
+            <button
+              className={`search-filter-btn ${type === 'tv' ? 'active' : ''}`}
+              onClick={() => handleFilterChange('tv')}
+            >
+              TV Series
+            </button>
+            <button
+              className={`search-filter-btn ${type === 'anime' ? 'active' : ''}`}
+              onClick={() => handleFilterChange('anime')}
+            >
+              Anime
+            </button>
           </div>
           
           <div className="search-sort" ref={dropdownRef}>
@@ -183,6 +273,45 @@ export function SearchResultsPage() {
             )}
           </div>
         </div>
+
+        {/* Intent Chips & Did You Mean Area */}
+        {(activeChips.length > 0 || didYouMean) && (
+          <div className="search-intent-bar">
+            {activeChips.length > 0 && (
+              <div className="search-intent-chips">
+                <span className="search-intent-label">Inferred filters:</span>
+                {activeChips.map(chip => (
+                  <span key={chip.id} className="search-intent-chip">
+                    <span>{chip.label}</span>
+                    <button
+                      type="button"
+                      className="search-chip-remove"
+                      onClick={() => handleRemoveChip(chip)}
+                      title={`Remove filter: ${chip.label}`}
+                      aria-label={`Remove filter: ${chip.label}`}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {didYouMean && (
+              <div className="search-did-you-mean-banner">
+                Did you mean:
+                <button
+                  type="button"
+                  className="search-did-you-mean-link"
+                  onClick={() => handleDidYouMeanClick(didYouMean)}
+                >
+                  "{didYouMean}"
+                </button>
+                ?
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="search-results-content">
@@ -228,7 +357,12 @@ export function SearchResultsPage() {
           <div className="search-error-state">
             <h2>Something went wrong</h2>
             <p>We encountered an error while searching. Please try again.</p>
-            <button className="search-retry-btn" onClick={() => fetchData(page, page === 1, query, type, sort)}>Retry</button>
+            <button
+              className="search-retry-btn"
+              onClick={() => fetchData(page, page === 1, query, type, sort, removedChipIds)}
+            >
+              Retry
+            </button>
           </div>
         )}
       </div>

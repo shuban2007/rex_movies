@@ -1,6 +1,7 @@
 export interface MovieSearchResult {
   id: number;
   title: string;
+  originalTitle?: string | null;
   year: string | null;
   posterPath: string | null;
   backdropPath: string | null;
@@ -21,6 +22,7 @@ export interface MediaSearchResult {
   id: number;
   mediaType: 'movie' | 'tv';
   title: string;
+  originalTitle?: string | null;
   year: string | null;
   posterPath: string | null;
   backdropPath: string | null;
@@ -29,6 +31,27 @@ export interface MediaSearchResult {
   originalLanguage?: string;
   voteAverage?: number;
   popularity?: number;
+}
+
+export interface PersonKnownFor {
+  id: number;
+  mediaType: 'movie' | 'tv';
+  title: string;
+  originalTitle?: string | null;
+  posterPath: string | null;
+  releaseYear: number | null;
+  voteAverage?: number;
+  popularity?: number;
+  genreIds?: number[];
+}
+
+export interface PersonSearchResult {
+  id: number;
+  name: string;
+  knownForDepartment: string | null;
+  profilePath: string | null;
+  popularity: number;
+  knownFor: PersonKnownFor[];
 }
 
 export interface TvSeason {
@@ -59,39 +82,67 @@ export class SearchError extends Error {
   }
 }
 
-// ── In-Memory Bounded Cache ──
-class LRUCache<T> {
-  cache: Map<string, T>;
-  limit: number;
+// ── In-Memory Bounded TTL Cache ──
+interface CacheEntry<T> {
+  value: T;
+  expiresAt: number;
+}
 
-  constructor(limit: number) {
-    this.cache = new Map<string, T>();
+export class LRUCache<T> {
+  cache: Map<string, CacheEntry<T>>;
+  limit: number;
+  defaultTtlMs: number;
+
+  constructor(limit: number, defaultTtlMs: number = 5 * 60 * 1000) {
+    this.cache = new Map<string, CacheEntry<T>>();
     this.limit = limit;
+    this.defaultTtlMs = defaultTtlMs;
   }
   
   get(key: string): T | undefined {
-    if (!this.cache.has(key)) return undefined;
-    const val = this.cache.get(key)!;
-    // Refresh position
+    const entry = this.cache.get(key);
+    if (!entry) return undefined;
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return undefined;
+    }
+    // Refresh position for LRU
     this.cache.delete(key);
-    this.cache.set(key, val);
-    return val;
+    this.cache.set(key, entry);
+    return entry.value;
   }
   
-  set(key: string, value: T): void {
+  set(key: string, value: T, ttlMs: number = this.defaultTtlMs): void {
     if (this.cache.has(key)) {
       this.cache.delete(key);
     } else if (this.cache.size >= this.limit) {
       const firstKey = this.cache.keys().next().value;
       if (firstKey !== undefined) this.cache.delete(firstKey);
     }
-    this.cache.set(key, value);
+    this.cache.set(key, { value, expiresAt: Date.now() + ttlMs });
+  }
+
+  delete(key: string): boolean {
+    return this.cache.delete(key);
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  size(): number {
+    return this.cache.size;
   }
 }
 
-// Cache holds up to 200 items in-memory. Reset on page reload.
+// Cache holds up to 200 items in-memory with 5 min TTL. Reset on page reload.
 const apiCache = new LRUCache<any>(200);
 const pendingRequests = new Map<string, Promise<any>>();
+
+export function clearApiCache(): void {
+  apiCache.clear();
+  pendingRequests.clear();
+}
 
 // ── AbortSignal Wrapper ──
 // Wraps a shared promise to respect the local caller's AbortSignal
@@ -166,6 +217,8 @@ function fetchWithCache<T>(
       pendingRequests.delete(cacheKey);
     });
 
+  // Attach a no-op handler to prevent unhandled rejections if caller aborts early
+  promise.catch(() => {});
   pendingRequests.set(cacheKey, promise);
   
   return withAbortSignal(promise, signal);
@@ -183,6 +236,12 @@ export async function searchMulti(query: string, page: number = 1, signal?: Abor
   if (!query.trim()) return [];
   const q = encodeURIComponent(query.trim());
   return fetchWithCache(`searchMulti:${q}:page${page}`, `/api/search-multi?q=${q}&page=${page}`, signal, true);
+}
+
+export async function searchPerson(query: string, page: number = 1, signal?: AbortSignal): Promise<PersonSearchResult[]> {
+  if (!query.trim()) return [];
+  const q = encodeURIComponent(query.trim());
+  return fetchWithCache(`searchPerson:${q}:page${page}`, `/api/search-person?q=${q}&page=${page}`, signal, true);
 }
 
 export async function getTrendingMovies(signal?: AbortSignal): Promise<MovieSearchResult[]> {

@@ -151,11 +151,18 @@
   color: rgba(255, 255, 255, 0.7);
   background: rgba(147, 51, 234, 0.1);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.navbar-search-did-you-mean:hover {
+  background: rgba(147, 51, 234, 0.2);
 }
 
 .navbar-search-did-you-mean strong {
   color: #a855f7;
   font-weight: 600;
+  text-decoration: underline;
 }
 
 .navbar-search-might-like {

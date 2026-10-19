@@ -34,6 +34,21 @@ export const providers: Provider[] = [
     buildUrl: ({ tmdbId }) => `https://cinesrc.st/embed/movie/${tmdbId}`,
   },
   {
+    id: 'vidcore-movie',
+    name: 'VidCore',
+    mediaType: 'movie',
+    enabled: true,
+    hasAds: false,
+    priority: 2,
+    buildUrl: ({ tmdbId, imdbId }) => {
+      const id = tmdbId || imdbId;
+      const url = new URL(`https://vidcore.org/embed/movie/${id}`);
+      url.searchParams.set('theme', 'e50914');
+      url.searchParams.set('autoplay', 'true');
+      return url.toString();
+    },
+  },
+  {
     id: 'cinevids-movie',
     name: 'Cinevids',
     mediaType: 'movie',
@@ -90,6 +105,21 @@ export const providers: Provider[] = [
     supportsPlaybackEvents: true,
     priority: 1, // SET AS TOP PRIORITY
     buildUrl: ({ tmdbId, season, episode }) => `https://cinesrc.st/embed/tv/${tmdbId}?s=${season}&e=${episode}`,
+  },
+  {
+    id: 'vidcore-tv',
+    name: 'VidCore',
+    mediaType: 'tv',
+    enabled: true,
+    hasAds: false,
+    priority: 2,
+    buildUrl: ({ tmdbId, season, episode, imdbId }) => {
+      const id = tmdbId || imdbId;
+      const url = new URL(`https://vidcore.org/embed/tv/${id}/${season || 1}/${episode || 1}`);
+      url.searchParams.set('theme', 'e50914');
+      url.searchParams.set('autoplay', 'true');
+      return url.toString();
+    },
   },
   {
     id: 'cinevids-tv',

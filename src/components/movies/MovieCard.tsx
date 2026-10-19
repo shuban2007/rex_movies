@@ -33,7 +33,10 @@ export function MovieCard({ movie }: MovieCardProps) {
   };
 
   const posterPath = movie.posterPath || (movie as any).backdropPath;
-  const posterUrl = getImageUrl(posterPath, 'w500');
+  const posterUrl = getImageUrl(posterPath, 'w342');
+  const posterSrcSet = posterPath
+    ? `${getImageUrl(posterPath, 'w185')} 185w, ${getImageUrl(posterPath, 'w342')} 342w, ${getImageUrl(posterPath, 'w500')} 500w`
+    : undefined;
 
   return (
     <div 
@@ -52,9 +55,14 @@ export function MovieCard({ movie }: MovieCardProps) {
         {posterUrl ? (
           <img 
             src={posterUrl} 
+            srcSet={posterSrcSet}
+            sizes="(max-width: 640px) 160px, (max-width: 1024px) 240px, 342px"
             alt={movie.title} 
             className="movie-card-poster" 
             loading="lazy" 
+            decoding="async"
+            width="342"
+            height="513"
           />
         ) : (
           <div className="movie-card-poster placeholder">

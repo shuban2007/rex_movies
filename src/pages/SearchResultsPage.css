@@ -249,3 +249,91 @@
     gap: 1rem;
   }
 }
+
+/* ── Intent Chips & Did You Mean ── */
+.search-intent-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.search-intent-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.search-intent-label {
+  font-size: 0.85rem;
+  color: rgba(240, 240, 245, 0.6);
+  margin-right: 0.25rem;
+}
+
+.search-intent-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 16px;
+  background: rgba(147, 51, 234, 0.15);
+  border: 1px solid rgba(147, 51, 234, 0.35);
+  color: #e9d5ff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.search-intent-chip:hover {
+  background: rgba(147, 51, 234, 0.25);
+  border-color: rgba(147, 51, 234, 0.5);
+}
+
+.search-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #f0f0f5;
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+  margin-left: 2px;
+}
+
+.search-chip-remove:hover {
+  background: rgba(239, 68, 68, 0.8);
+  color: white;
+}
+
+.search-did-you-mean-banner {
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  color: rgba(240, 240, 245, 0.85);
+  font-size: 0.95rem;
+}
+
+.search-did-you-mean-link {
+  color: #60a5fa;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  margin-left: 0.35rem;
+}
+
+.search-did-you-mean-link:hover {
+  color: #93c5fd;
+}

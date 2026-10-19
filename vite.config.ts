@@ -80,6 +80,7 @@ const apiPlugin = () => ({
               id: item.id,
               mediaType: type,
               title: type === 'movie' ? item.title : item.name,
+              originalTitle: type === 'movie' ? (item.original_title || null) : (item.original_name || null),
               year: type === 'movie' 
                 ? (item.release_date ? item.release_date.split('-')[0] : null)
                 : (item.first_air_date ? item.first_air_date.split('-')[0] : null),
@@ -153,11 +154,14 @@ const apiPlugin = () => ({
           }));
         }
         
+        const rawPage = parseInt(url.searchParams.get('page') || '1', 10);
+        const page = (!isNaN(rawPage) && rawPage > 0 && rawPage <= 1000) ? rawPage.toString() : '1';
+
         const params = new URLSearchParams({
           query,
           include_adult: 'false',
           language: 'en-US',
-          page: '1'
+          page
         });
         return handleTmdbRequest('/search/movie', params);
       }
@@ -179,11 +183,14 @@ const apiPlugin = () => ({
         }
         
         try {
+          const rawPage = parseInt(url.searchParams.get('page') || '1', 10);
+          const page = (!isNaN(rawPage) && rawPage > 0 && rawPage <= 1000) ? rawPage.toString() : '1';
+
           const params = new URLSearchParams({
             query,
             include_adult: 'false',
             language: 'en-US',
-            page: '1'
+            page
           });
           const tmdbUrl = `https://api.tmdb.org/3/search/multi?${params.toString()}`;
           
@@ -200,11 +207,11 @@ const apiPlugin = () => ({
           
           const results = (data.results || [])
             .filter((item: any) => item.media_type === 'movie' || item.media_type === 'tv')
-            .slice(0, 20)
             .map((item: any) => ({
               id: item.id,
               mediaType: item.media_type,
               title: item.media_type === 'movie' ? item.title : item.name,
+              originalTitle: item.media_type === 'movie' ? (item.original_title || null) : (item.original_name || null),
               year: item.media_type === 'movie' 
                 ? (item.release_date ? item.release_date.split('-')[0] : null)
                 : (item.first_air_date ? item.first_air_date.split('-')[0] : null),
@@ -222,6 +229,62 @@ const apiPlugin = () => ({
         } catch {
           res.statusCode = 500;
           return res.end(JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch search results.' } }));
+        }
+      }
+
+      if (pathname === '/api/search-person') {
+        const rawQuery = url.searchParams.get('q');
+        if (!rawQuery || !rawQuery.trim()) {
+          res.statusCode = 400;
+          return res.end(JSON.stringify({
+            error: { code: 'INVALID_QUERY', message: 'Search query is required.' }
+          }));
+        }
+        const query = rawQuery.trim();
+        const rawPage = parseInt(url.searchParams.get('page') || '1', 10);
+        const page = (!isNaN(rawPage) && rawPage > 0 && rawPage <= 1000) ? rawPage.toString() : '1';
+
+        try {
+          const params = new URLSearchParams({
+            query,
+            include_adult: 'false',
+            language: 'en-US',
+            page
+          });
+          const tmdbUrl = `https://api.tmdb.org/3/search/person?${params.toString()}`;
+          const tmdbRes = await fetch(tmdbUrl, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'accept': 'application/json',
+            }
+          });
+
+          if (!tmdbRes.ok) throw new Error('Failed to fetch person search');
+          const data = await tmdbRes.json() as any;
+          const results = (data.results || []).map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            knownForDepartment: p.known_for_department || null,
+            profilePath: p.profile_path || null,
+            popularity: p.popularity || 0,
+            knownFor: (p.known_for || []).map((k: any) => ({
+              id: k.id,
+              mediaType: k.media_type,
+              title: k.media_type === 'movie' ? k.title : k.name,
+              originalTitle: k.media_type === 'movie' ? (k.original_title || null) : (k.original_name || null),
+              posterPath: k.poster_path || null,
+              releaseYear: k.release_date ? parseInt(k.release_date.split('-')[0], 10) : (k.first_air_date ? parseInt(k.first_air_date.split('-')[0], 10) : null),
+              voteAverage: k.vote_average || 0,
+              popularity: k.popularity || 0,
+              genreIds: k.genre_ids || [],
+            }))
+          }));
+
+          res.statusCode = 200;
+          return res.end(JSON.stringify({ results }));
+        } catch {
+          res.statusCode = 500;
+          return res.end(JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'Failed to search person.' } }));
         }
       }
 
