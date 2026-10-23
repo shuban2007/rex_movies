@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useGuestStore } from '../hooks/useGuestStore';
 import { MovieCard } from '../components/movies/MovieCard';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { HistoryIcon } from '../components/common/Icons';
 import { getMovieDetails, getTvDetails, type MediaSearchResult } from '../services/tmdb';
 import './HistoryPage.css';
 import './WatchlistPage.css'; // Reusing collection grid styles
@@ -166,7 +167,9 @@ export function HistoryPage() {
           </div>
         ) : history.length === 0 ? (
           <div className="collection-empty">
-            <div className="empty-icon">◷</div>
+            <div className="empty-icon">
+              <HistoryIcon size={48} strokeWidth={1.5} />
+            </div>
             <h2>No watch history yet.</h2>
             <p>Content you watch will appear here.</p>
             <Link to="/" className="discover-btn">

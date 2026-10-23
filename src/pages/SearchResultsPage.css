@@ -179,6 +179,9 @@
   font-size: 3rem;
   margin-bottom: 1rem;
   opacity: 0.5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .search-empty-state h2,

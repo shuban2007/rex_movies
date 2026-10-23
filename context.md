@@ -96,8 +96,10 @@ REX.io/
 │   ├── App.tsx                      # Root routes, mobile navigation, global banners
 │   ├── config.ts                    # Application metadata constants and default provider URLs
 │   ├── index.css                    # Design tokens, global resets, mobile safety
-│   └── main.tsx                     # React DOM entrypoint with GuestStoreProvider
-├── vite.config.ts                   # Vite config, dev API middleware, Workbox PWA caching
+│   ├── main.tsx                     # React DOM entrypoint with GuestStoreProvider & PWA registration
+│   └── pwa.ts                       # PWA lifecycle, update checks, reload management
+├── vercel.json                      # Vercel rewrites and Cache-Control headers
+├── vite.config.ts                   # Vite config, dev/preview API proxy, Workbox PWA caching
 └── context.md                       # This file
 ```
 
@@ -131,7 +133,7 @@ To prevent rogue embed iframes from redirecting the user or spamming popups:
 To prevent exposing the `TMDB_API_READ_ACCESS_TOKEN` in the browser bundle, all TMDB communication goes through a server-side proxy.
 
 - **Production:** `api/tmdb.ts` runs as a Vercel serverless function handling all `/api/*` routes.
-- **Development:** `vite.config.ts` includes `apiPlugin()` middleware replicating the exact same serverless routes locally.
+- **Development & Local Preview:** `vite.config.ts` includes `apiPlugin()` middleware hooking into both `configureServer` (development) and `configurePreviewServer` (production preview), replicating the exact same serverless routes locally and enabling reliable end-to-end testing with `npm run preview`.
 
 #### Proxy Endpoints:
 1. `GET /api/section?path=/discover/movie&type=movie`: Fetches curated section contents.
@@ -162,6 +164,10 @@ A 45KB proprietary search and recommendation module featuring:
    - Proposes closest match suggestions for misspellings.
 3. **Watch Random Matcher:**
    - Evaluates combinations of **Mood** (e.g., "Mind-bending", "Adrenaline Rush", "Cozy Evening"), **Era** (Classic, Modern, Golden Age), **Runtime**, and **Rating** against TMDB discover parameters.
+4. **Search Bar State & Home Navigation Lifecycle (`MovieSearch.tsx`):**
+   - **Automatic Home Reset:** When navigating to the Home page (`/`), `MovieSearch` resets `query`, search suggestions, dropdown visibility, and aborts in-flight searches immediately during render (using React's recommended state-adjustment pattern on route change).
+   - **Logo & Home Link Dispatcher:** Clicking the top-left Rex.io logo in `Header.tsx` or the Home tab in `MobileBottomNav` dispatches a `'rexio-clear-search'` window event, guaranteeing the home page opens completely clean and unencumbered by previous queries (e.g. searching "Avengers", viewing results, and returning home).
+   - **Playback Navigation:** Selecting an autocomplete result navigates directly to `/watch/:mediaType/:id` and automatically resets the search input.
 
 ---
 
@@ -195,13 +201,34 @@ REX.io supports both **Guest Users** and **Authenticated Users**:
 
 ---
 
-### 4.6. Progressive Web App (PWA) & Offline Strategy
+### 4.6. Progressive Web App (PWA), Update Strategy & Caching
 
-Configured in `vite.config.ts` using `vite-plugin-pwa` (Workbox):
-- **App Shell:** HTML, JS, CSS, and local icons are pre-cached for instant offline launching.
-- **Google Fonts Cache:** `CacheFirst` strategy with 1-year expiration.
+Configured via `vite-plugin-pwa` (Workbox) in `vite.config.ts` and managed via `src/pwa.ts`:
+
+#### Core Pre-caching & Runtime Caching:
+- **App Shell Pre-caching:** HTML, JS, CSS, fonts, and local branding assets are pre-cached for instant offline launching and fast first-paint times.
+- **Google Fonts Cache:** `CacheFirst` strategy with 1-year expiration for `fonts.googleapis.com` and `fonts.gstatic.com`.
 - **TMDB Image Cache:** `StaleWhileRevalidate` strategy for `https://image.tmdb.org/*` caching up to 200 poster/backdrop images for 30 days.
-- **API Exclusions:** All `/api/*` endpoints strictly bypass the service worker to prevent serving stale metadata or streaming links.
+- **Strict API Isolation:** `/api/*` endpoints are strictly mapped to `NetworkOnly` in Workbox runtime caching and protected by `navigateFallbackDenylist: [/^\/api\//]` so streaming links and metadata are never served stale or cached.
+
+#### Update Lifecycle & Stale Version Mitigation (`src/pwa.ts`):
+Specifically engineered to ensure Android Add-to-Home-Screen installations and third-party mobile browsers (Samsung Internet, Firefox for Android, DuckDuckGo, Brave) detect new deployments immediately:
+1. **Programmatic Registration:** Uses `registerSW` from `virtual:pwa-register` with `{ immediate: true }` in `src/main.tsx`, eliminating unmanaged fallback scripts.
+2. **Multi-Trigger Revalidation (`registration.update()`):**
+   - *Startup:* Checks for updates immediately when the service worker registers.
+   - *Foreground Resume (`visibilitychange`):* When an Android user returns to the installed app, `document.visibilityState === 'visible'` immediately triggers `registration.update()`.
+   - *Online Restoration (`online`):* Immediately checks for updates when device connectivity returns.
+   - *Periodic Interval:* Runs background checks every 30 minutes with a `cache: 'no-store'` preflight fetch to bypass intermediate mobile carrier proxies.
+3. **Controlled Activation & Playback Protection (`onNeedReload`):**
+   - Automatically reloads the window (`window.location.reload()`) upon update activation so the user gets fresh assets without manual cache clearing.
+   - *Playback Guard:* If the user is on `/watch/*`, the reload is deferred until navigation away or until the app is minimized (`visibilityState === 'hidden'`), avoiding mid-movie interruptions.
+
+#### Vercel Cache-Control Header Hierarchy (`vercel.json`):
+Strict hierarchical caching rules ensure entrypoints and service workers revalidate on every request while static assets remain permanently cached:
+- `/sw.js` & `/registerSW.js`: `Cache-Control: public, max-age=0, must-revalidate, no-cache, no-store`
+- `/manifest.webmanifest`: `Cache-Control: public, max-age=0, must-revalidate`
+- `/(.*)` (HTML documents & SPA routes): `Cache-Control: public, max-age=0, must-revalidate`
+- `/assets/(.*)` (Fingerprinted JS/CSS chunks): `Cache-Control: public, max-age=31536000, immutable`
 
 ---
 
@@ -296,3 +323,5 @@ npm run preview
 2. **Never expose TMDB Tokens:** TMDB tokens must **never** be injected into client-side `import.meta.env` with `VITE_` prefix. Client code must always fetch from `/api/*`.
 3. **Maintain Embed Sandbox Security:** Always pass iframe embeds through `providerShield.ts`. Never remove the sandbox attribute without checking compatibility notes.
 4. **Test Integrity:** Always ensure all tests pass (`npm test`) when altering core engines (`discoveryEngine.ts`, `provider.ts`, `tmdb.ts`).
+5. **PWA & Cache-Control Integrity:** Never remove `NetworkOnly` for `/api/*` in Workbox, never remove `configurePreviewServer` from `apiPlugin()` in `vite.config.ts`, and maintain `sw.js` Cache-Control headers as strictly un-cached (`no-cache, no-store, must-revalidate`).
+6. **Search Bar State Hygiene:** Ensure home page navigations (via Logo link, MobileBottomNav Home tab, or route transitions to `/`) continue to reset the search bar via `'rexio-clear-search'` and render-time pathname checks.

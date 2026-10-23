@@ -9,6 +9,7 @@ import {
   type IntentChip
 } from '../services/discoveryEngine';
 import { MovieCard } from '../components/movies/MovieCard';
+import { SearchIcon } from '../components/common/Icons';
 import './SearchResultsPage.css';
 
 export function SearchResultsPage() {
@@ -388,7 +389,9 @@ export function SearchResultsPage() {
         ) : (
           !isLoading && (
             <div className="search-empty-state">
-              <div className="search-empty-icon">🔍</div>
+              <div className="search-empty-icon">
+                <SearchIcon size={48} strokeWidth={1.5} />
+              </div>
               <h2>No results found</h2>
               <p>We couldn't find anything matching your criteria. Try adjusting your filters or search terms.</p>
             </div>

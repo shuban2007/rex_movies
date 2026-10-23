@@ -5,6 +5,7 @@ import { getHomeSection } from '../services/tmdb';
 import type { MediaSearchResult } from '../services/tmdb';
 import { homeSections } from '../config/homeSections';
 import { WatchRandomModal } from '../components/movies/WatchRandomModal';
+import { DiceIcon } from '../components/common/Icons';
 import './HomePage.css';
 
 export function HomePage() {
@@ -40,7 +41,8 @@ export function HomePage() {
       <div className="home-content">
         <div className="watch-random-banner">
           <button className="watch-random-trigger" onClick={() => setIsRandomModalOpen(true)}>
-            🎲 Watch Random
+            <DiceIcon size={26} className="watch-random-icon" />
+            <span>Watch Random</span>
           </button>
         </div>
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useGuestStore } from '../hooks/useGuestStore';
 import { MovieCard } from '../components/movies/MovieCard';
+import { HeartIcon } from '../components/common/Icons';
 import { getMovieDetails, getTvDetails, type MediaSearchResult } from '../services/tmdb';
 import './WatchlistPage.css';
 
@@ -78,7 +79,9 @@ export function WatchlistPage() {
           </div>
         ) : watchlist.length === 0 ? (
           <div className="collection-empty">
-            <div className="empty-icon">♡</div>
+            <div className="empty-icon">
+              <HeartIcon size={48} strokeWidth={1.5} />
+            </div>
             <h2>Your watchlist is empty.</h2>
             <p>Content you add will appear here.</p>
             <Link to="/" className="discover-btn">

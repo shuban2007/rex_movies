@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { MovieSearch } from '../search/MovieSearch';
 import { InstallButton } from '../pwa/InstallButton';
+import { HeartIcon, HistoryIcon } from '../common/Icons';
 import './Header.css';
 
 export function Header() {
@@ -26,11 +27,15 @@ export function Header() {
         <nav className="header-nav">
           <InstallButton />
           <Link to="/watchlist" className={`nav-link ${isActive('/watchlist') ? 'active' : ''}`}>
-            <span className="nav-icon">♡</span>
+            <span className="nav-icon">
+              <HeartIcon size={18} strokeWidth={1.8} />
+            </span>
             <span className="nav-text">Watchlist</span>
           </Link>
           <Link to="/history" className={`nav-link ${isActive('/history') ? 'active' : ''}`}>
-            <span className="nav-icon">◷</span>
+            <span className="nav-icon">
+              <HistoryIcon size={18} strokeWidth={2} />
+            </span>
             <span className="nav-text">History</span>
           </Link>
         </nav>

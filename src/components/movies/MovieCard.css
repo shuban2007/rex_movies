@@ -105,6 +105,12 @@
   -webkit-backdrop-filter: blur(4px);
 }
 
+.watchlist-btn svg {
+  display: block;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
 /* Always show active buttons, or show on hover */
 .watchlist-btn.active {
   opacity: 1;

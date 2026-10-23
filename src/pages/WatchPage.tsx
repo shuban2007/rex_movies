@@ -5,6 +5,7 @@ import { getMovieDetails, getTvDetails, getTvSeasonEpisodes, type MovieSearchRes
 import { RecommendationSection } from '../components/recommendations/RecommendationSection';
 import { EpisodeList } from '../components/tv/EpisodeList';
 import { useGuestStore } from '../hooks/useGuestStore';
+import { DownloadIcon, HeartIcon } from '../components/common/Icons';
 import './WatchPage.css';
 
 const DOWNLOAD_BASE_URL = 'https://acermovies.fun';
@@ -276,11 +277,7 @@ export function WatchPage() {
                     className="download-movie-btn" 
                     onClick={() => window.open(DOWNLOAD_BASE_URL, '_blank', 'noopener,noreferrer')}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                      <polyline points="7 10 12 15 17 10"></polyline>
-                      <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
+                    <DownloadIcon size={18} />
                     Download
                   </button>
                 )}
@@ -361,16 +358,12 @@ export function WatchPage() {
               >
                 {inWatchlist ? (
                   <>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                    </svg>
+                    <HeartIcon size={18} filled={true} />
                     In Watchlist
                   </>
                 ) : (
                   <>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                    </svg>
+                    <HeartIcon size={18} filled={false} />
                     Add to Watchlist
                   </>
                 )}

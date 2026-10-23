@@ -9,6 +9,7 @@ import {
   clearRecentSearches,
   normalizeQuery,
 } from '../../services/recentSearches';
+import { SearchIcon, HistoryIcon } from '../common/Icons';
 import './MovieSearch.css';
 
 export function MovieSearch() {
@@ -195,10 +196,7 @@ export function MovieSearch() {
     <div className="navbar-search-container" ref={containerRef}>
       <form className="navbar-search-form" onSubmit={handleSubmit} role="search">
         <div className="navbar-search-bar">
-          <svg className="navbar-search-icon" width="16" height="16" viewBox="0 0 18 18" fill="none">
-            <circle cx="7.5" cy="7.5" r="6" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M12.5 12.5l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
+          <SearchIcon size={16} strokeWidth={2} className="navbar-search-icon" />
 
           <input
             ref={inputRef}
@@ -282,21 +280,12 @@ export function MovieSearch() {
                     role="button"
                     aria-label={`Search for ${item}`}
                   >
-                    <svg
+                    <HistoryIcon
                       className="navbar-search-recent-icon"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                      size={14}
+                      strokeWidth={2}
                       aria-hidden="true"
-                    >
-                      <circle cx="12" cy="12" r="10" />
-                      <polyline points="12 6 12 12 16 14" />
-                    </svg>
+                    />
                     <span className="navbar-search-recent-text">{item}</span>
                   </li>
                 ))}

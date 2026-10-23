@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import type { MovieSearchResult, MediaSearchResult, TvSeriesDetails } from '../../services/tmdb';
 import { getImageUrl } from '../../utils/imageUrl';
 import { useGuestStore } from '../../hooks/useGuestStore';
+import { HeartIcon } from '../common/Icons';
 import './MovieCard.css';
 
 interface MovieCardProps {
@@ -93,7 +94,7 @@ export function MovieCard({ movie }: MovieCardProps) {
           aria-label={inWatchlist ? "Remove from Watchlist" : "Add to Watchlist"}
           title={inWatchlist ? "Remove from Watchlist" : "Add to Watchlist"}
         >
-          {inWatchlist ? '♥' : '♡'}
+          <HeartIcon size={20} filled={inWatchlist} strokeWidth={1.8} />
         </button>
       </div>
 

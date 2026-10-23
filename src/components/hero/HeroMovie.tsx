@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import type { MovieSearchResult } from '../../services/tmdb';
 import { getImageUrl } from '../../utils/imageUrl';
 import { useGuestStore } from '../../hooks/useGuestStore';
+import { HeartIcon } from '../common/Icons';
 import './HeroMovie.css';
 
 interface HeroMovieProps {
@@ -70,16 +71,12 @@ export function HeroMovie({ movie }: HeroMovieProps) {
           <button className={`hero-btn secondary ${inWatchlist ? 'active' : ''}`} onClick={handleWatchlistClick}>
             {inWatchlist ? (
               <>
-                <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                </svg>
+                <HeartIcon size={20} filled={true} />
                 In Watchlist
               </>
             ) : (
               <>
-                <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-                </svg>
+                <HeartIcon size={20} filled={false} />
                 Watchlist
               </>
             )}
