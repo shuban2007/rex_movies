@@ -61,7 +61,7 @@ export const providers: Provider[] = [
     id: 'filmu-movie',
     name: 'FilmU',
     mediaType: 'movie',
-    enabled: true,
+    enabled: false,
     hasAds: true,
     priority: 3,
     buildUrl: ({ tmdbId }) => `https://embed.filmu.in/movie/${tmdbId}`,

@@ -763,40 +763,65 @@ export function scoreSearchCandidate(
 // ── Search Public API ─────────────────────────────────────────────────
 
 export async function searchContent(query: string, options: SearchOptions = {}): Promise<AdvancedSearchResult> {
-  const trimmed = query.trim();
-  if (trimmed.length < 2) return { results: [] };
-  
-  const { page = 1, type = 'all', sort = 'relevance', signal, genreId, year } = options;
-  const normQuery = normalizeSearchQuery(trimmed);
-  const cacheKey = `${normQuery}:${page}:${type}:${sort}:${genreId || ''}:${year || ''}`;
-  
-  // Return cached result if available and fresh
-  const cached = searchCache.get(cacheKey);
-  if (cached) {
-    return cached;
+  const { signal } = options;
+  if (signal?.aborted) {
+    const err = new Error('Aborted');
+    err.name = 'AbortError';
+    return Promise.reject(err);
   }
 
-  // In-flight request deduplication
+  const trimmed = query.trim();
+  if (trimmed.length < 2) return { results: [] };
+
+  const { page = 1, type = 'all', sort = 'relevance', genreId, year } = options;
+  const normQuery = normalizeSearchQuery(trimmed);
+
+  // Parse natural language intent deterministically
+  const intent = options.intent || parseSearchIntent(trimmed);
+  const activeType = type !== 'all' ? type : (intent.mediaType !== 'all' ? intent.mediaType : 'all');
+
+  // Determine active genre filter:
+  // genreId: undefined -> default to intent's single genre (if present)
+  // genreId: 0 or negative -> explicitly disabled (e.g. user removed genre chip)
+  // genreId: > 0 -> explicitly requested genre ID
+  let filterGenreId: number | undefined;
+  if (genreId !== undefined) {
+    filterGenreId = genreId > 0 ? genreId : undefined;
+  } else if (intent.genreIds.length === 1) {
+    filterGenreId = intent.genreIds[0];
+  }
+
+  const filterYear = year !== undefined ? (year > 0 ? year : undefined) : intent.year;
+
+  // Unambiguous cache key distinguishing all material parameters
+  const cacheKey = `${normQuery}:${page}:${activeType}:${sort}:g${filterGenreId ?? 'none'}:y${filterYear ?? 'none'}`;
+
+  // Return cached result if available and fresh, guarded by the caller's AbortSignal
+  const cached = searchCache.get(cacheKey);
+  if (cached) {
+    return withAbortSignal(Promise.resolve(cached), signal);
+  }
+
+  // In-flight request deduplication for matching request identities
   if (pendingSearches.has(cacheKey)) {
     return withAbortSignal(pendingSearches.get(cacheKey)!, signal);
   }
 
   const searchPromise = (async () => {
-    // Parse natural language intent deterministically
-    const intent = options.intent || parseSearchIntent(trimmed);
-    const activeType = type !== 'all' ? type : (intent.mediaType !== 'all' ? intent.mediaType : 'all');
-    
     // Determine query to send to TMDB (preserve text tokens, or fallback to trimmed)
     const effectiveSearchText = intent.textQuery.length >= 2 ? intent.textQuery : trimmed;
     const queryTokens = tokenizeSearchQuery(effectiveSearchText);
 
     // 1. Fetch Primary TMDB results (Page requested)
-    const primaryFetch = searchMulti(effectiveSearchText, page, signal).catch(() => []);
-    
+    // NOTE: Shared background fetch runs without component-specific AbortSignals to prevent
+    // cancellation of one consumer from aborting other concurrent consumers or poisoning the cache.
+    // Errors are NOT swallowed: network/API failures must reject so they display error state and are not cached.
+    const primaryFetch = searchMulti(effectiveSearchText, page);
+
     // Optional person search if actor/director detected or text matches name-like pattern
     let personFetch: Promise<PersonSearchResult[]> = Promise.resolve([]);
     if (page === 1 && intent.personName) {
-      personFetch = searchPerson(intent.personName, 1, signal).catch(() => []);
+      personFetch = searchPerson(intent.personName, 1).catch(() => []);
     }
 
     const [primaryResults, personResults] = await Promise.all([primaryFetch, personFetch]);
@@ -838,12 +863,12 @@ export async function searchContent(query: string, options: SearchOptions = {}):
           }
         }
       }
-      
+
       // If no strong match found on page 1, fetch top variants
       if (!isStrongResult) {
         const variants = generateVariants(effectiveSearchText, queryTokens);
         if (variants.length > 0) {
-          const fallbackPromises = variants.map(v => searchMulti(v, 1, signal).catch(() => []));
+          const fallbackPromises = variants.map(v => searchMulti(v, 1).catch(() => []));
           const fallbackResults = await Promise.all(fallbackPromises);
           allResults = [...allResults, ...fallbackResults.flat()];
         }
@@ -874,9 +899,8 @@ export async function searchContent(query: string, options: SearchOptions = {}):
     }
 
     // Optional explicit genre filter (from chip or option)
-    const filterGenreId = genreId || (intent.genreIds.length === 1 ? intent.genreIds[0] : undefined);
     if (filterGenreId) {
-      const genreFiltered = uniqueResults.filter(item => item.genres.includes(filterGenreId));
+      const genreFiltered = uniqueResults.filter(item => item.genres.includes(filterGenreId!));
       // Only apply if it doesn't eliminate all results
       if (genreFiltered.length > 0) {
         uniqueResults = genreFiltered;
@@ -884,7 +908,6 @@ export async function searchContent(query: string, options: SearchOptions = {}):
     }
 
     // Optional explicit year filter
-    const filterYear = year || intent.year;
     if (filterYear) {
       const yearFiltered = uniqueResults.filter(item => item.releaseYear === filterYear);
       if (yearFiltered.length > 0) {
@@ -913,10 +936,9 @@ export async function searchContent(query: string, options: SearchOptions = {}):
       const fScore = fuzzyMap.get(`${item.mediaType}-${item.id}`) ?? 1.0;
       return scoreSearchCandidate(effectiveSearchText, queryTokens, item, fScore, intent);
     });
-    
+
     if (sort === 'trending') {
       scoredResults.sort((a, b) => {
-        // Tie-breaker by relevance if popularity is close, otherwise popularity
         const popA = a.item.popularity || 0;
         const popB = b.item.popularity || 0;
         if (Math.abs(popA - popB) < 10) return b.finalScore - a.finalScore;
@@ -944,7 +966,6 @@ export async function searchContent(query: string, options: SearchOptions = {}):
     // 7. Did You Mean Suggestion
     let didYouMean: string | undefined;
     if (page === 1 && scoredResults.length > 0 && !isStrongResult) {
-      // Find candidate among top results with lowest Damerau-Levenshtein edit distance to query
       let closestCandidate = scoredResults[0];
       let minDistance = damerauLevenshtein(normQuery, normalizeSearchQuery(closestCandidate.item.title || ''));
 
@@ -961,7 +982,6 @@ export async function searchContent(query: string, options: SearchOptions = {}):
 
       const candidateTitle = closestCandidate.item.title;
       if (candidateTitle && normalizeSearchQuery(candidateTitle) !== normQuery) {
-        // Suggest if edit distance is within reasonable typo range (1 to 3 edits)
         if (minDistance >= 1 && minDistance <= 3) {
           didYouMean = candidateTitle;
         } else if (closestCandidate.coverage >= 0.8 && closestCandidate.finalScore > 40 && primaryResults.length === 0) {
@@ -976,9 +996,11 @@ export async function searchContent(query: string, options: SearchOptions = {}):
   })();
 
   pendingSearches.set(cacheKey, searchPromise);
-  searchPromise.finally(() => {
-    pendingSearches.delete(cacheKey);
-  });
+  searchPromise
+    .catch(() => {})
+    .finally(() => {
+      pendingSearches.delete(cacheKey);
+    });
 
   return withAbortSignal(searchPromise, signal);
 }
@@ -1002,7 +1024,7 @@ export async function getDiscoveryContent(options: SearchOptions = {}): Promise<
       }, signal);
       results = results.concat(tv.map(t => classifyContent(t, 'tv')));
     }
-    
+
     // Filter
     if (type !== 'all') {
       results = results.filter(item => {
@@ -1021,9 +1043,10 @@ export async function getDiscoveryContent(options: SearchOptions = {}): Promise<
     const finalResults = Array.from(uniqueMap.values());
     finalResults.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
     return finalResults;
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.name === 'AbortError') throw err;
     console.error('Discovery fetch error', err);
-    return [];
+    throw err;
   }
 }
 

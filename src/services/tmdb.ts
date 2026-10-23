@@ -227,21 +227,27 @@ function fetchWithCache<T>(
 // ── API Methods ──
 
 export async function searchMovies(query: string, page: number = 1, signal?: AbortSignal): Promise<MovieSearchResult[]> {
-  if (!query.trim()) return [];
-  const q = encodeURIComponent(query.trim());
-  return fetchWithCache(`searchMovies:${q}:page${page}`, `/api/search-movies?q=${q}&page=${page}`, signal, true);
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+  const q = encodeURIComponent(trimmed);
+  const cacheKey = `searchMovies:${encodeURIComponent(trimmed.toLowerCase())}:page${page}`;
+  return fetchWithCache(cacheKey, `/api/search-movies?q=${q}&page=${page}`, signal, true);
 }
 
 export async function searchMulti(query: string, page: number = 1, signal?: AbortSignal): Promise<MediaSearchResult[]> {
-  if (!query.trim()) return [];
-  const q = encodeURIComponent(query.trim());
-  return fetchWithCache(`searchMulti:${q}:page${page}`, `/api/search-multi?q=${q}&page=${page}`, signal, true);
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+  const q = encodeURIComponent(trimmed);
+  const cacheKey = `searchMulti:${encodeURIComponent(trimmed.toLowerCase())}:page${page}`;
+  return fetchWithCache(cacheKey, `/api/search-multi?q=${q}&page=${page}`, signal, true);
 }
 
 export async function searchPerson(query: string, page: number = 1, signal?: AbortSignal): Promise<PersonSearchResult[]> {
-  if (!query.trim()) return [];
-  const q = encodeURIComponent(query.trim());
-  return fetchWithCache(`searchPerson:${q}:page${page}`, `/api/search-person?q=${q}&page=${page}`, signal, true);
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+  const q = encodeURIComponent(trimmed);
+  const cacheKey = `searchPerson:${encodeURIComponent(trimmed.toLowerCase())}:page${page}`;
+  return fetchWithCache(cacheKey, `/api/search-person?q=${q}&page=${page}`, signal, true);
 }
 
 export async function getTrendingMovies(signal?: AbortSignal): Promise<MovieSearchResult[]> {

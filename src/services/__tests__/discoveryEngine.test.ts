@@ -386,7 +386,7 @@ describe('Discovery Engine — Stage A Tests', () => {
       const searchMultiSpy = vi.spyOn(tmdbModule, 'searchMulti').mockResolvedValue([]);
 
       await searchContent('matrix', { page: 3 });
-      expect(searchMultiSpy).toHaveBeenCalledWith('matrix', 3, undefined);
+      expect(searchMultiSpy).toHaveBeenCalledWith('matrix', 3);
     });
   });
 
@@ -565,12 +565,10 @@ describe('Discovery Engine — Stage A Tests', () => {
       expect(res.didYouMean).toBeUndefined();
     });
 
-    it('handles upstream TMDB API errors and empty responses gracefully without throwing', async () => {
+    it('propagates upstream TMDB API errors so caller can display error state rather than swallowing as empty result', async () => {
       vi.spyOn(tmdbModule, 'searchMulti').mockRejectedValue(new Error('500 Internal Server Error'));
 
-      const res = await searchContent('error query');
-      expect(res.results).toEqual([]);
-      expect(res.didYouMean).toBeUndefined();
+      await expect(searchContent('error query')).rejects.toThrow('500 Internal Server Error');
     });
 
     it('ranks multiple candidate corrections and picks closest by Damerau-Levenshtein distance', async () => {

@@ -257,6 +257,88 @@
   color: #d8b4fe;
 }
 
+/* ─── Recent Searches Section ───────────────────────────── */
+
+.navbar-search-recent-section {
+  padding: 0.25rem 0;
+}
+
+.navbar-search-recent-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem 0.35rem;
+}
+
+.navbar-search-recent-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(240, 240, 245, 0.45);
+}
+
+.navbar-search-recent-clear-btn {
+  background: transparent;
+  border: none;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(240, 240, 245, 0.5);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.navbar-search-recent-clear-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ef4444;
+}
+
+.navbar-search-recent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+}
+
+.navbar-search-recent-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  color: rgba(240, 240, 245, 0.9);
+  font-size: 0.85rem;
+  transition: background 0.15s ease, color 0.15s ease;
+  user-select: none;
+  outline: none;
+}
+
+.navbar-search-recent-item:hover,
+.navbar-search-recent-item:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.navbar-search-recent-icon {
+  flex-shrink: 0;
+  color: rgba(240, 240, 245, 0.4);
+  transition: color 0.15s ease;
+}
+
+.navbar-search-recent-item:hover .navbar-search-recent-icon,
+.navbar-search-recent-item:focus-visible .navbar-search-recent-icon {
+  color: #a855f7;
+}
+
+.navbar-search-recent-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ─── Responsive ──────────────────────────────────────────── */
 
 @media (max-width: 768px) {

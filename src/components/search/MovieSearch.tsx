@@ -3,6 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { searchContent, type DiscoveryItem } from '../../services/discoveryEngine';
 import { SearchError } from '../../services/tmdb';
 import { getImageUrl } from '../../utils/imageUrl';
+import {
+  getRecentSearches,
+  saveRecentSearch,
+  clearRecentSearches,
+  normalizeQuery,
+} from '../../services/recentSearches';
 import './MovieSearch.css';
 
 export function MovieSearch() {
@@ -12,6 +18,7 @@ export function MovieSearch() {
   const [results, setResults] = useState<DiscoveryItem[]>([]);
   const [didYouMean, setDidYouMean] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => getRecentSearches());
 
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<number | null>(null);
@@ -19,6 +26,7 @@ export function MovieSearch() {
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
+  // Listen for outside clicks to close the dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -27,6 +35,21 @@ export function MovieSearch() {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Listen for storage / custom updates to keep recent searches reactive
+  useEffect(() => {
+    const syncSearches = () => {
+      setRecentSearches(getRecentSearches());
+    };
+
+    window.addEventListener('rexio-recent-searches-updated', syncSearches);
+    window.addEventListener('storage', syncSearches);
+
+    return () => {
+      window.removeEventListener('rexio-recent-searches-updated', syncSearches);
+      window.removeEventListener('storage', syncSearches);
+    };
   }, []);
 
   const executeSearch = useCallback(async (searchQuery: string) => {
@@ -56,7 +79,7 @@ export function MovieSearch() {
         setIsSearching(false);
       }
     } catch (err: any) {
-      if (err.name === 'AbortError') return;
+      if (err?.name === 'AbortError' || err?.message === 'Aborted' || controller.signal.aborted) return;
       if (!controller.signal.aborted) {
         setIsSearching(false);
         if (err instanceof SearchError) {
@@ -68,23 +91,48 @@ export function MovieSearch() {
     }
   }, []);
 
+  const performSearchSubmission = useCallback((rawQuery: string) => {
+    const normalized = normalizeQuery(rawQuery);
+    if (!normalized) return;
+
+    abortRef.current?.abort();
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+
+    const updated = saveRecentSearch(normalized);
+    setRecentSearches(updated);
+    setShowDropdown(false);
+    navigate(`/search?q=${encodeURIComponent(normalized)}`);
+  }, [navigate]);
+
   const handleSubmit = useCallback((e?: FormEvent) => {
     e?.preventDefault();
-    if (query.trim()) {
-      setShowDropdown(false);
-      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
-    }
-  }, [query, navigate]);
+    performSearchSubmission(query);
+  }, [query, performSearchSubmission]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (query.trim()) {
-        setShowDropdown(false);
-        navigate(`/search?q=${encodeURIComponent(query.trim())}`);
-      }
+      performSearchSubmission(query);
+    } else if (e.key === 'Escape') {
+      setShowDropdown(false);
     }
-  }, [query, navigate]);
+  }, [query, performSearchSubmission]);
+
+  const handleSelectRecent = useCallback((recentQuery: string) => {
+    const normalized = normalizeQuery(recentQuery);
+    if (!normalized) return;
+
+    setQuery(normalized);
+    performSearchSubmission(normalized);
+  }, [performSearchSubmission]);
+
+  const handleClearRecent = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    clearRecentSearches();
+    setRecentSearches([]);
+    setShowDropdown(false);
+  }, []);
 
   const handleClear = useCallback(() => {
     abortRef.current?.abort();
@@ -94,7 +142,10 @@ export function MovieSearch() {
     setError('');
     setResults([]);
     setDidYouMean(null);
-    setShowDropdown(false);
+
+    const currentRecent = getRecentSearches();
+    setRecentSearches(currentRecent);
+    setShowDropdown(currentRecent.length > 0);
     inputRef.current?.focus();
   }, []);
 
@@ -106,6 +157,9 @@ export function MovieSearch() {
   };
 
   const showClear = query.length > 0;
+  const isQueryEmpty = query.trim().length === 0;
+  const hasRecentSearches = isQueryEmpty && !isSearching && recentSearches.length > 0;
+  const shouldShowDropdown = showDropdown && ((!isQueryEmpty || isSearching) || hasRecentSearches);
 
   return (
     <div className="navbar-search-container" ref={containerRef}>
@@ -125,9 +179,9 @@ export function MovieSearch() {
             onChange={(e) => {
               const val = e.target.value;
               setQuery(val);
-              
+
               if (debounceRef.current) window.clearTimeout(debounceRef.current);
-              
+
               if (val.trim().length > 0) {
                 // Debounce for 300ms
                 debounceRef.current = window.setTimeout(() => {
@@ -136,11 +190,19 @@ export function MovieSearch() {
               } else {
                 setResults([]);
                 setDidYouMean(null);
-                setShowDropdown(false);
+                const currentRecent = getRecentSearches();
+                setRecentSearches(currentRecent);
+                setShowDropdown(currentRecent.length > 0);
               }
             }}
             onFocus={() => {
-              if (query.trim().length > 0) setShowDropdown(true);
+              const currentRecent = getRecentSearches();
+              setRecentSearches(currentRecent);
+              if (query.trim().length > 0) {
+                setShowDropdown(true);
+              } else if (currentRecent.length > 0) {
+                setShowDropdown(true);
+              }
             }}
             onKeyDown={handleKeyDown}
             autoComplete="off"
@@ -148,7 +210,7 @@ export function MovieSearch() {
           />
 
           {showClear && !isSearching && (
-            <button type="button" className="navbar-search-clear-btn" onClick={handleClear}>
+            <button type="button" className="navbar-search-clear-btn" onClick={handleClear} aria-label="Clear search input">
               <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
                 <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
@@ -159,16 +221,65 @@ export function MovieSearch() {
         </div>
       </form>
 
-      {showDropdown && (query.trim().length > 0 || isSearching) && (
-        <div className="navbar-search-dropdown">
-          {error ? (
+      {shouldShowDropdown && (
+        <div className="navbar-search-dropdown" role="region" aria-label={hasRecentSearches ? 'Recent Searches' : 'Search Suggestions'}>
+          {hasRecentSearches ? (
+            <div className="navbar-search-recent-section">
+              <div className="navbar-search-recent-header">
+                <span className="navbar-search-recent-title">Recent Searches</span>
+                <button
+                  type="button"
+                  className="navbar-search-recent-clear-btn"
+                  onClick={handleClearRecent}
+                  aria-label="Clear recent searches"
+                >
+                  Clear
+                </button>
+              </div>
+              <ul className="navbar-search-recent-list" role="list">
+                {recentSearches.map((item) => (
+                  <li
+                    key={item}
+                    className="navbar-search-recent-item"
+                    onClick={() => handleSelectRecent(item)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleSelectRecent(item);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Search for ${item}`}
+                  >
+                    <svg
+                      className="navbar-search-recent-icon"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <span className="navbar-search-recent-text">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : error ? (
             <div className="navbar-search-message error">{error}</div>
           ) : isSearching && results.length === 0 ? (
             <div className="navbar-search-message">Searching...</div>
           ) : results.length > 0 ? (
             <>
               {didYouMean && (
-                <div 
+                <div
                   className="navbar-search-did-you-mean"
                   onClick={() => {
                     setQuery(didYouMean);
@@ -197,8 +308,8 @@ export function MovieSearch() {
                 {results.slice(0, 8).map(result => {
                   const poster = getImageUrl(result.posterPath, 'w92');
                   return (
-                    <li 
-                      key={`${result.mediaType}-${result.id}`} 
+                    <li
+                      key={`${result.mediaType}-${result.id}`}
                       className="navbar-search-result-item"
                       onClick={() => handleResultClick(result.id, result.mediaType)}
                     >
@@ -222,12 +333,17 @@ export function MovieSearch() {
                 })}
               </ul>
               {results.length > 0 && (
-                <div 
-                  className="navbar-search-view-all" 
-                  onClick={() => {
-                    setShowDropdown(false);
-                    navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+                <div
+                  className="navbar-search-view-all"
+                  onClick={() => performSearchSubmission(query)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      performSearchSubmission(query);
+                    }
                   }}
+                  role="button"
+                  tabIndex={0}
                 >
                   View all results for "{query.trim()}"
                 </div>

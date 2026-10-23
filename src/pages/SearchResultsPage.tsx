@@ -14,7 +14,8 @@ import './SearchResultsPage.css';
 export function SearchResultsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   
-  const query = searchParams.get('q') || '';
+  const rawQuery = searchParams.get('q') || '';
+  const query = rawQuery.trim();
   const type = (searchParams.get('type') as ContentType) || 'all';
   const sort = (searchParams.get('sort') as 'relevance' | 'trending' | 'latest') || (query ? 'relevance' : 'trending');
 
@@ -28,9 +29,10 @@ export function SearchResultsPage() {
   const [detectedIntent, setDetectedIntent] = useState<SearchIntent | undefined>();
   const [removedChipIds, setRemovedChipIds] = useState<string[]>([]);
 
-  // Keep track of the active request to avoid race conditions
+  // Keep track of the active request and active query to avoid race conditions
   const abortControllerRef = useRef<AbortController | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const activeQueryRef = useRef<string>(query);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -56,32 +58,43 @@ export function SearchResultsPage() {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
+    activeQueryRef.current = currentQuery;
+    await Promise.resolve();
+    if (controller.signal.aborted || activeQueryRef.current !== currentQuery) return;
+
     setIsLoading(true);
     setError(false);
+    if (isNewSearch) {
+      setResults([]);
+    }
 
     try {
       let fetchedResults: DiscoveryItem[] = [];
       
-      if (currentQuery.trim()) {
-        const activeGenre = detectedIntent?.genreIds?.find(
-          gid => !activeRemovedChipIds.includes(`genre-${gid}`)
-        );
+      if (currentQuery) {
+        // If user removed a genre chip, genreId is 0 (explicitly disabled).
+        // Otherwise undefined so the discovery engine uses inferred intent genre if present.
+        const hasRemovedGenre = activeRemovedChipIds.some(id => id.startsWith('genre-'));
+        const genreOption = hasRemovedGenre ? 0 : undefined;
+
         const res = await searchContent(currentQuery, {
           page: targetPage,
           type: currentType,
           sort: currentSort,
-          genreId: activeGenre,
+          genreId: genreOption,
           signal: controller.signal
         });
-        
-        fetchedResults = res.results;
 
-        if (!controller.signal.aborted) {
-          setDidYouMean(res.didYouMean);
-          if (isNewSearch) {
-            setDetectedIntent(res.intent);
-            setPage(1);
-          }
+        // Guard against aborted or superseded requests
+        if (controller.signal.aborted || activeQueryRef.current !== currentQuery) {
+          return;
+        }
+
+        fetchedResults = res.results;
+        setDidYouMean(res.didYouMean);
+        if (isNewSearch) {
+          setDetectedIntent(res.intent);
+          setPage(1);
         }
       } else {
         // Discovery mode (no pagination support on discovery, just page 1)
@@ -91,12 +104,15 @@ export function SearchResultsPage() {
             sort: currentSort,
             signal: controller.signal
           });
-          if (!controller.signal.aborted) {
-            setDidYouMean(undefined);
-            setDetectedIntent(undefined);
-            if (isNewSearch) {
-              setPage(1);
-            }
+
+          if (controller.signal.aborted || activeQueryRef.current !== currentQuery) {
+            return;
+          }
+
+          setDidYouMean(undefined);
+          setDetectedIntent(undefined);
+          if (isNewSearch) {
+            setPage(1);
           }
         } else {
           setHasMore(false);
@@ -105,46 +121,57 @@ export function SearchResultsPage() {
         }
       }
 
-      if (!controller.signal.aborted) {
-        setResults(prev => {
-          if (isNewSearch) return fetchedResults;
-          
-          // Deduplicate across pages
-          const uniqueMap = new Map<string, DiscoveryItem>();
-          prev.forEach(item => uniqueMap.set(`${item.mediaType}-${item.id}`, item));
-          fetchedResults.forEach(item => uniqueMap.set(`${item.mediaType}-${item.id}`, item));
-          return Array.from(uniqueMap.values());
-        });
+      if (controller.signal.aborted || activeQueryRef.current !== currentQuery) {
+        return;
+      }
 
-        // TMDB pages usually have 20 items. If we get less, we've likely hit the end.
-        if (fetchedResults.length < 20 && currentQuery.trim()) {
-          setHasMore(false);
-        } else if (currentQuery.trim()) {
-          setHasMore(true);
-        }
+      setResults(prev => {
+        if (isNewSearch) return fetchedResults;
         
-        if (!currentQuery.trim() && targetPage === 1) {
-          setHasMore(false);
-        }
+        // Deduplicate across pages
+        const uniqueMap = new Map<string, DiscoveryItem>();
+        prev.forEach(item => uniqueMap.set(`${item.mediaType}-${item.id}`, item));
+        fetchedResults.forEach(item => uniqueMap.set(`${item.mediaType}-${item.id}`, item));
+        return Array.from(uniqueMap.values());
+      });
+
+      // TMDB pages usually have 20 items. If we get less, we've likely hit the end.
+      if (fetchedResults.length < 20 && currentQuery) {
+        setHasMore(false);
+      } else if (currentQuery) {
+        setHasMore(true);
+      }
+      
+      if (!currentQuery && targetPage === 1) {
+        setHasMore(false);
       }
     } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        console.error('Search error:', err);
-        setError(true);
+      if (err?.name === 'AbortError' || err?.message === 'Aborted' || controller.signal.aborted || activeQueryRef.current !== currentQuery) {
+        return;
       }
+      console.error('Search error:', err);
+      setError(true);
     } finally {
-      if (!controller.signal.aborted) {
+      if (!controller.signal.aborted && activeQueryRef.current === currentQuery) {
         setIsLoading(false);
       }
     }
-  }, [detectedIntent]);
+  }, []);
+
+  const [prevQuery, setPrevQuery] = useState(query);
+  if (prevQuery !== query) {
+    setPrevQuery(query);
+    setRemovedChipIds([]);
+  }
 
   // Fetch when query, type, sort, or removed chips change
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     fetchData(1, true, query, type, sort, removedChipIds);
   }, [query, type, sort, removedChipIds, fetchData]);
 
   const handleFilterChange = (newType: string) => {
+    setPage(1);
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
       next.set('type', newType);
@@ -153,6 +180,7 @@ export function SearchResultsPage() {
   };
 
   const handleSortChange = (newSort: string) => {
+    setPage(1);
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
       next.set('sort', newSort);
@@ -169,6 +197,7 @@ export function SearchResultsPage() {
   };
 
   const handleDidYouMeanClick = (suggested: string) => {
+    setPage(1);
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
       next.set('q', suggested);
@@ -195,6 +224,10 @@ export function SearchResultsPage() {
         return next;
       });
     }
+  };
+
+  const handleRetry = () => {
+    fetchData(page, page === 1, query, type, sort, removedChipIds);
   };
 
   // Active intent chips excluding removed ones
@@ -315,7 +348,24 @@ export function SearchResultsPage() {
       </div>
 
       <div className="search-results-content">
-        {results.length > 0 ? (
+        {isLoading && page === 1 ? (
+          <div className="search-results-grid">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="movie-card-skeleton"></div>
+            ))}
+          </div>
+        ) : error && results.length === 0 ? (
+          <div className="search-error-state">
+            <h2>Something went wrong</h2>
+            <p>We encountered an error while searching. Please try again.</p>
+            <button
+              className="search-retry-btn"
+              onClick={handleRetry}
+            >
+              Retry
+            </button>
+          </div>
+        ) : results.length > 0 ? (
           <>
             <div className="search-results-grid">
               {results.map(item => (
@@ -343,27 +393,6 @@ export function SearchResultsPage() {
               <p>We couldn't find anything matching your criteria. Try adjusting your filters or search terms.</p>
             </div>
           )
-        )}
-        
-        {isLoading && page === 1 && (
-          <div className="search-results-grid">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="movie-card-skeleton"></div>
-            ))}
-          </div>
-        )}
-        
-        {error && !isLoading && (
-          <div className="search-error-state">
-            <h2>Something went wrong</h2>
-            <p>We encountered an error while searching. Please try again.</p>
-            <button
-              className="search-retry-btn"
-              onClick={() => fetchData(page, page === 1, query, type, sort, removedChipIds)}
-            >
-              Retry
-            </button>
-          </div>
         )}
       </div>
     </div>
