@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, type FormEvent, type KeyboardEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { searchContent, type DiscoveryItem } from '../../services/discoveryEngine';
 import { SearchError } from '../../services/tmdb';
 import { getImageUrl } from '../../utils/imageUrl';
@@ -25,6 +25,36 @@ export function MovieSearch() {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const [prevPathname, setPrevPathname] = useState(location.pathname);
+
+  // 1. When navigating to the home page via route change (e.g. Back/Forward), reset state immediately during render
+  if (prevPathname !== location.pathname) {
+    setPrevPathname(location.pathname);
+    if (location.pathname === '/') {
+      setQuery('');
+      setResults([]);
+      setDidYouMean(null);
+      setError('');
+      setShowDropdown(false);
+    }
+  }
+
+  // 2. Reset whenever a home link or logo is clicked (even when already on '/')
+  useEffect(() => {
+    const handleClear = () => {
+      setQuery('');
+      setResults([]);
+      setDidYouMean(null);
+      setError('');
+      setShowDropdown(false);
+      abortRef.current?.abort();
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    };
+
+    window.addEventListener('rexio-clear-search', handleClear);
+    return () => window.removeEventListener('rexio-clear-search', handleClear);
+  }, []);
 
   // Listen for outside clicks to close the dropdown
   useEffect(() => {

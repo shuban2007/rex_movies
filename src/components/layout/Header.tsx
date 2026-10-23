@@ -10,7 +10,14 @@ export function Header() {
   return (
     <header className="app-header">
       <div className="header-inner">
-        <Link to="/" className="header-logo-link" aria-label="Rex.io Home">
+        <Link
+          to="/"
+          className="header-logo-link"
+          aria-label="Rex.io Home"
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent('rexio-clear-search'));
+          }}
+        >
           <img src="/REX_Logo.png" alt="Rex.io" className="header-logo" draggable={false} />
         </Link>
 

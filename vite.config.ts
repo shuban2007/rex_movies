@@ -9,9 +9,8 @@ import { defineConfig, loadEnv } from 'vite';
  * In production, this same logic should run as a serverless function
  * or Node server endpoint — never bundled into the client.
  */
-const apiPlugin = () => ({
-  name: 'rex-api-plugin',
-  configureServer(server: any) {
+const apiPlugin = () => {
+  const setupMiddlewares = (server: any) => {
     server.middlewares.use(async (req: any, res: any, next: any) => {
       if (!req.url?.startsWith('/api/')) {
         return next();
@@ -19,12 +18,12 @@ const apiPlugin = () => ({
 
       res.setHeader('Content-Type', 'application/json');
 
-      const url = new URL(req.url, `http://${req.headers.host}`);
+      const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
       const pathname = url.pathname;
 
       // ── Load TMDB token ───────────────────────────────
-      const env = loadEnv(server.config.mode, process.cwd(), '');
-      const token = env.TMDB_API_READ_ACCESS_TOKEN;
+      const env = loadEnv(server.config?.mode || 'development', process.cwd(), '');
+      const token = env.TMDB_API_READ_ACCESS_TOKEN || process.env.TMDB_API_READ_ACCESS_TOKEN;
 
       if (!token) {
         console.error('[TMDB] TMDB_API_READ_ACCESS_TOKEN is missing in server environment.');
@@ -443,8 +442,14 @@ const apiPlugin = () => ({
       res.statusCode = 404;
       return res.end(JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Endpoint not found.' } }));
     });
-  },
-});
+  };
+
+  return {
+    name: 'rex-api-plugin',
+    configureServer: setupMiddlewares,
+    configurePreviewServer: setupMiddlewares,
+  };
+};
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -453,7 +458,7 @@ export default defineConfig({
     apiPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'REX_Logo.png', 'pwa-icon-192.png', 'pwa-icon-512.png'],
+      includeAssets: ['favicon.svg'],
       manifest: {
         name: 'REX.io',
         short_name: 'REX.io',
@@ -489,6 +494,11 @@ export default defineConfig({
         // NEVER cache API, TMDB, streaming iframes, or external media
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
+          {
+            // API endpoints should ALWAYS be NetworkOnly and never served from cache
+            urlPattern: /^\/api\/.*/i,
+            handler: 'NetworkOnly',
+          },
           {
             // Cache Google Fonts
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
